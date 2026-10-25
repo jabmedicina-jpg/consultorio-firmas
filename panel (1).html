@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Planilla de atención</title>
+<style>
+  :root{--bg:#f4f6f8;--card:#fff;--fg:#1c2733;--mut:#5d6b7a;--line:#d5dce3;--acc:#0b6e6e;--acc-fg:#fff;--err:#b3261e;--warn:#9a6700;--warn-bg:#fff4d6}
+  @media (prefers-color-scheme:dark){:root{--bg:#10171d;--card:#18212a;--fg:#e8edf2;--mut:#9aa8b6;--line:#2b3846;--acc:#3fb5b5;--acc-fg:#06201f;--err:#ff8a80;--warn:#f0c36a;--warn-bg:#3a2f12}}
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:16px}
+  main{max-width:1100px;margin:0 auto}
+  h1{font-size:1.3rem;margin:4px 0 12px}
+  h2{font-size:1.05rem;margin:0 0 10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+  input,select,textarea{font:inherit;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);max-width:100%}
+  button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:9px 14px;cursor:pointer;background:var(--acc);color:var(--acc-fg)}
+  button.sec{background:none;color:var(--acc);border:1px solid var(--line)}
+  button.mini{padding:5px 10px;font-size:.85rem}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .bar input[type=search]{flex:1;min-width:180px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .tabs button{background:none;color:var(--fg);border:1px solid var(--line)}
+  .tabs button.on{background:var(--acc);color:var(--acc-fg);border-color:var(--acc)}
+  .login{display:grid;gap:10px;max-width:340px}
+  .err{color:var(--err);margin:0;min-height:1.2em}
+  .tw{overflow-x:auto}
+  table.lista{border-collapse:collapse;width:100%;min-width:860px;font-variant-numeric:tabular-nums}
+  .lista th,.lista td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .lista th{font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+  .lista td img{height:40px;background:#fff;border:1px solid var(--line);border-radius:4px;display:block}
+  .cnt{color:var(--mut)}
+  .pill{font-size:.78rem;padding:2px 8px;border-radius:99px;background:var(--warn-bg);color:var(--warn);white-space:nowrap}
+  .pill.ok{background:none;border:1px solid var(--line);color:var(--mut)}
+  .aviso{background:var(--warn-bg);color:var(--warn);padding:8px 12px;border-radius:8px;margin:0 0 12px}
+  .form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  .form label{display:grid;gap:4px;font-weight:600;font-size:.9rem}
+  .form input,.form select{width:100%}
+  .fullw{grid-column:1/-1}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto;z-index:20}
+  .modal .card{max-width:760px;width:100%}
+  h3.sep{grid-column:1/-1;margin:8px 0 0;font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+
+  /* ===== Hojas para imprimir (siempre papel blanco) ===== */
+  #hojas{display:grid;gap:16px;justify-items:center;overflow-x:auto}
+  .sheet{background:#fff;color:#000;border:1px solid #999;padding:6mm;font:9pt/1.25 Arial,Helvetica,sans-serif}
+  .sheet.land{width:297mm;min-height:210mm}
+  .sheet.port{width:210mm;min-height:297mm}
+  .sheet h4{margin:0 0 3mm;font-size:11pt;text-align:center;border:1px solid #000;padding:1.5mm}
+  .hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(70mm,1fr));gap:1.5mm 6mm;margin-bottom:3mm}
+  .hl{display:flex;gap:2mm;border-bottom:1px solid #000;min-height:5mm;align-items:flex-end}
+  .hl span{white-space:nowrap}
+  .hl b{font-weight:600}
+  table.pl{border-collapse:collapse;width:100%;table-layout:auto}
+  .pl th,.pl td{border:1px solid #000;padding:0 1.2mm;text-align:left;vertical-align:middle}
+  .pl th{font-size:8pt;text-align:center;padding:1mm}
+  .pl td{height:var(--rh,9mm);font-size:8.5pt;overflow:hidden}
+  .pl td img{display:block;max-height:calc(var(--rh,9mm) - 1mm);max-width:100%;margin:auto}
+  .foot{display:grid;grid-template-columns:repeat(auto-fit,minmax(55mm,1fr));gap:6mm;margin-top:10mm}
+  .foot div{border-top:1px solid #000;padding-top:1mm;font-size:8.5pt;text-align:center}
+  .note{font-size:8pt;margin-top:2mm}
+  .hoja{text-align:right;font-size:8pt;margin-top:2mm}
+  .card-soc{border:1px solid #000;display:grid;grid-template-columns:1fr 38mm;margin-bottom:-1px}
+  .card-soc .l{padding:1mm 2mm;display:grid;gap:1mm}
+  .card-soc .l div{border-bottom:1px solid #000;min-height:6mm;display:flex;gap:4mm}
+  .card-soc .r{border-left:1px solid #000;padding:1mm;text-align:center;font-size:7pt;display:flex;flex-direction:column;justify-content:space-between;align-items:center}
+  .card-soc .r img{max-height:14mm;max-width:100%}
+
+  .sw-top{display:flex;align-items:center;gap:6mm;margin-bottom:3mm}
+  .sw-marca{font:700 10pt Arial,Helvetica,sans-serif;white-space:nowrap;color:#000}
+  .sw-tit{flex:1;border:1px solid #000;padding:1.5mm 3mm;text-align:center;font:italic 700 11pt Arial,Helvetica,sans-serif}
+  .sw-head{display:grid;grid-template-columns:50fr 11fr 44fr 12fr;grid-template-rows:minmax(17mm,auto) minmax(10mm,auto);border:1px solid #000;margin-bottom:0}
+  .sw-head>div{border-right:1px solid #000;border-bottom:1px solid #000;padding:.8mm 1.5mm;font-size:6.5pt;color:#333;text-transform:uppercase}
+  .sw-head>div b{display:block;font-size:9pt;color:#000;text-transform:none;font-weight:600;margin-top:.5mm}
+  .sw-head .dom{display:grid;grid-template-rows:1fr 1fr;padding:0}
+  .sw-head .dom>div{padding:.8mm 1.5mm}
+  .sw-head .dom>div+div{border-top:1px solid #000}
+  .sw-head .esp{grid-column:1/3}
+  .sw-head .per{grid-column:3/5}
+  .sw-head>div:nth-child(4),.sw-head .per{border-right:0}
+  .sw-foot{display:flex;justify-content:space-between;gap:10mm;margin-top:6mm;font-size:7pt;text-transform:uppercase}
+  .sw-foot div{flex:1;display:flex;gap:2mm;align-items:flex-end}
+  .sw-foot i{flex:1;border-bottom:1px solid #000;height:5mm}
+  .sheet.ovl{position:relative;width:355.6mm;height:215.9mm;padding:0;overflow:hidden;background:#fff}
+  .ovl-in{position:absolute;left:0;top:0;width:355.6mm;height:215.9mm;transform-origin:0 0}
+  .ovl-in .t{position:absolute;transform:translateY(-50%);font:9.5pt Arial,Helvetica,sans-serif;white-space:nowrap;overflow:hidden;color:#000}
+  .ovl-in .g{position:absolute;border:.2mm dashed #888;pointer-events:none}
+  .ovl-in .t img{display:block;max-height:7mm;max-width:100%}
+  @page leg{size:355.6mm 215.9mm;margin:0}
+  .sheet.ovl{page:leg}
+  @page land{size:A4 landscape;margin:6mm}
+  @page port{size:A4 portrait;margin:6mm}
+  .sheet.land{page:land}
+  .sheet.port{page:port}
+  @media print{
+    body{background:#fff;padding:0}
+    .noprint{display:none!important}
+    main{max-width:none}
+    #hojas{display:block;overflow:visible}
+    .sheet,.sheet.land,.sheet.port{border:0;break-after:page;margin:0;padding:0;width:auto;min-height:0}
+    .sheet:last-child{break-after:auto}
+    .sheet.ovl{width:355.6mm!important;height:215.9mm!important;overflow:hidden!important}
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1 class="noprint">Planilla de atención</h1>
+
+  <section class="card login noprint" id="login">
+    <input id="mail" type="email" placeholder="Email" autocomplete="username">
+    <input id="pass" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button id="entrar">Ingresar</button>
+    <p class="err" id="lerr" role="alert"></p>
+  </section>
+
+  <div id="app" hidden>
+    <div class="tabs noprint">
+      <button data-tab="reg" class="on">Registros</button>
+      <button data-tab="plan">Planilla mensual</button>
+      <button data-tab="perfil">Mis datos</button>
+      <button class="sec" id="salir" style="margin-left:auto">Salir</button>
+    </div>
+
+    <!-- REGISTROS -->
+    <section class="card noprint" id="t-reg">
+      <div class="bar">
+        <input id="q" type="search" placeholder="Buscar por nombre, DNI o afiliado">
+        <select id="fos" aria-label="Obra social"><option value="">Todas las obras sociales</option></select>
+        <input id="fmes" type="month" aria-label="Mes">
+        <button id="csv">Descargar Excel (CSV)</button>
+      </div>
+      <p class="cnt" id="cnt"></p>
+      <div class="tw">
+        <table class="lista">
+          <thead><tr><th>Fecha</th><th>Paciente</th><th>DNI</th><th>Obra social</th><th>Afiliado</th><th>Código</th><th>Diagnóstico</th><th>Firma</th><th></th></tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PLANILLA MENSUAL -->
+    <section id="t-plan" hidden>
+      <div class="card noprint" style="margin-bottom:12px">
+        <div class="bar" style="margin-bottom:6px">
+          <select id="pos" aria-label="Obra social"></select>
+          <input id="pmes" type="month" aria-label="Mes de prestación">
+          <button id="generar">Generar planilla</button>
+          <button id="imprimir" class="sec">Imprimir / guardar PDF</button>
+        </div>
+        <div class="bar" style="margin:8px 0 6px">
+          <button id="ovl" class="sec">Imprimir sobre papel original</button>
+          <button id="ovlTest" class="sec">Hoja de prueba con guías</button>
+          <label class="cnt">Mover → (mm) <input id="ovdx" type="number" step="0.5" value="0" style="width:76px"></label>
+          <label class="cnt">Mover ↓ (mm) <input id="ovdy" type="number" step="0.5" value="0" style="width:76px"></label>
+          <label class="cnt">Escala (%) <input id="ovs" type="number" step="0.5" value="100" style="width:76px"></label>
+        </div>
+        <p class="cnt" id="pinfo">Elegí obra social y mes. Se arma con los registros de ese mes y tus datos de “Mis datos”.</p>
+        <p class="aviso" id="paviso" hidden></p>
+      </div>
+      <div id="hojas"></div>
+    </section>
+
+    <!-- MIS DATOS -->
+    <section class="card noprint" id="t-perfil" hidden>
+      <h2>Mis datos de profesional</h2>
+      <p class="cnt">Se repiten en el encabezado de todas las planillas. Completalos una sola vez.</p>
+      <div class="form" id="perfilForm"></div>
+      <div class="bar" style="margin-top:12px"><button id="guardarPerfil">Guardar</button><span class="cnt" id="pmsg"></span></div>
+    </section>
+  </div>
+
+  <!-- EDITAR REGISTRO -->
+  <div class="modal noprint" id="modal" hidden>
+    <div class="card">
+      <h2 id="mtitulo">Completar registro</h2>
+      <div class="form" id="mform"></div>
+      <p class="err" id="merr" role="alert"></p>
+      <div class="bar"><button id="mguardar">Guardar</button><button class="sec" id="mcerrar">Cancelar</button></div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+// ====== CONFIGURAR (mismos datos que index.html) ======
+const SUPABASE_URL = "https://pqyobznfmiehrwmypgiz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeW9iem5mbWllaHJ3bXlwZ2l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NzczNjQsImV4cCI6MjEwODM1MzM2NH0.z0EWix4-hmNU7_HNmOGDX19wjGGA7BwrVL0bIPWKlDw";
+// ======================================================
+
+const $ = id => document.getElementById(id);
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const OBRAS = ["APSOT","FSST","OSTP y GP Chubut","Swiss Medical","Galeno","Avalian","Medifé","Osjera","Jerárquicos","SanCorSalud"];
+let filas = [], perfil = {};
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = f => { const [y,m,d] = f.split("-"); return `${d}/${m}/${y}`; };
+const money = v => v == null || v === "" ? "" : Number(v).toLocaleString("es-AR",{minimumFractionDigits:2});
+const mesActual = () => new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,7);
+const pendiente = r => !r.codigo_prestacion || !r.diagnostico;
+
+/* ---------- Campos editables de un registro ---------- */
+const CAMPOS = [
+  {sep:"Datos del paciente"},
+  {k:"obra_social",l:"Obra social",t:"select",o:OBRAS},
+  {k:"apellido_nombre",l:"Apellido y nombre"},
+  {k:"nro_afiliado",l:"N° de afiliado / socio"},
+  {k:"plan",l:"Plan"},
+  {k:"dni",l:"DNI",t:"dni"},
+  {k:"edad",l:"Edad",t:"int"},
+  {k:"fecha_atencion",l:"Fecha de atención",t:"date"},
+  {k:"motivo",l:"Motivo de consulta"},
+  {sep:"Lo completás vos"},
+  {k:"practica",l:"Práctica realizada"},
+  {k:"codigo_prestacion",l:"Código de prestación"},
+  {k:"diagnostico",l:"Diagnóstico"},
+  {k:"nro_autorizacion",l:"N° de autorización / validación / transacción"},
+  {k:"copago",l:"Copago ($)",t:"num"},
+  {k:"importe",l:"Importe / valor a liquidar ($)",t:"num"},
+  {k:"prescriptor",l:"Nombre del prescriptor"},
+  {k:"letra",l:"Letra (APSOT/FSST)"},
+  {k:"tipo_afiliado",l:"Voluntario / obligatorio",t:"select",o:["Voluntario","Obligatorio"]},
+  {k:"tipo_atencion",l:"Ambulatorio / domicilio / internación",t:"select",o:["Ambulatorio","Domicilio","Internación"]}
+];
+
+/* ---------- Datos del profesional ---------- */
+const PERFIL = [
+  ["nombre","Apellido y nombre / razón social"],["matricula","N° de matrícula"],["especialidad","Especialidad"],
+  ["cuit","CUIT"],["nro_prestador","N° de prestador / código"],["domicilio","Domicilio del consultorio"],
+  ["telefono","Teléfono"],["localidad","Localidad o ciudad"],["convenio","Convenio (Jerárquicos)"]
+];
+
+/* ---------- Definición de columnas ---------- */
+const C = {
+  orden:{h:"N°",f:(r,i)=>String(i+1).padStart(2,"0")},
+  fecha:{h:"Fecha",f:r=>fmt(r.fecha_atencion)},
+  dia:{h:"Día",f:r=>r.fecha_atencion.slice(8,10)},
+  diames:{h:"Día y mes",f:r=>r.fecha_atencion.slice(8,10)+"/"+r.fecha_atencion.slice(5,7)},
+  afil:{h:"N° de afiliado",f:r=>r.nro_afiliado},
+  letra:{h:"Letra",f:r=>r.letra},
+  nom:{h:"Apellido y nombre",f:r=>r.apellido_nombre},
+  dni:{h:"DNI",f:r=>r.dni},
+  edad:{h:"Edad",f:r=>r.edad},
+  plan:{h:"Plan",f:r=>r.plan},
+  tafil:{h:"Voluntario / obligatorio",f:r=>r.tipo_afiliado},
+  tat:{h:"Ambulatorio / domicilio / internación",f:r=>r.tipo_atencion},
+  prac:{h:"Práctica realizada",f:r=>r.practica},
+  cod:{h:"Código de prestación",f:r=>r.codigo_prestacion},
+  diag:{h:"Diagnóstico",f:r=>r.diagnostico},
+  aut:{h:"N° de autorización",f:r=>r.nro_autorizacion},
+  copago:{h:"Copago ($)",f:r=>money(r.copago)},
+  importe:{h:"Importe ($)",f:r=>money(r.importe)},
+  presc:{h:"Nombre del prescriptor",f:r=>r.prescriptor},
+  firma:{h:"Firma del afiliado",raw:true,f:r=>`<img src="${esc(r.firma)}" alt="">`}
+};
+
+const FP = "Firma y sello del profesional";
+/* Cada obra social: columnas, encabezado, pie y filas por hoja (rows) */
+const OSCFG = {
+  "APSOT": null, "FSST": null,
+  "OSTP y GP Chubut":{
+    title:"Registro de pacientes para consultas y prácticas — OSTP y GP Chubut", rows:15, rh:8.5,
+    cols:["fecha",["afil","Número de socio"],["nom","Apellido y nombre del socio"],["cod","Código"],"diag",["firma","Firma conformidad del socio"],["aut","N° de validación"]],
+    head:(P,x)=>[["Nombre y apellido del profesional:",P.nombre],["Período facturado:",x.periodo]],
+    foot:["Firma del profesional"]
+  },
+  "Swiss Medical":{
+    rows:16, rh:8, w:[5,8,15,23,12,14,12,11], cls:"sw",
+    cols:[["orden","Nº DE ORDEN"],["fecha","FECHA"],["afil","NÚMERO DE SOCIO"],["nom","APELLIDO Y NOMBRE DEL SOCIO"],["prac","PRÁCTICA"],["diag","DIAGNÓSTICO"],["firma","FIRMA DEL SOCIO"],["aut","Nº VALIDACIÓN"]],
+    titleHTML:()=>`<div class="sw-top"><div class="sw-marca">Swiss Medical Group</div><div class="sw-tit">REGISTRO DE PACIENTES PARA CONSULTAS Y PRACTICAS</div></div>`,
+    headHTML:(P,x)=>`<div class="sw-head">
+      <div>Nombre y apellido del profesional<b>${esc(P.nombre)}</b></div>
+      <div>Nº Mat.<b>${esc(P.matricula)}</b></div>
+      <div class="dom"><div>Domicilio del consultorio<b>${esc(P.domicilio)}</b></div><div>Teléfono<b>${esc(P.telefono)}</b></div></div>
+      <div>Hoja Nº<b>${x.hoja}</b></div>
+      <div class="esp">Especialidad<b>${esc(P.especialidad)}</b></div>
+      <div class="per">Período facturado<b>${esc(x.periodo)}</b></div>
+    </div>`,
+    footHTML:()=>`<div class="sw-foot"><div>Número de boletín consultado<i></i></div><div>Firma del profesional<i></i></div></div>`
+  },
+  "Galeno":{
+    title:"Galeno — Planilla de consultas y prácticas ambulatorias", rows:15, rh:8.5,
+    cols:["dia",["afil","N° de asociado"],"nom","cod",["diag","Diagnóstico (detalle)"],["aut","Código de autorización"],"copago",["firma","Firma del asociado"]],
+    head:(P,x)=>[["Dr.:",P.nombre],["Especialidad:",P.especialidad],["N° de matrícula:",P.matricula],["N° de CUIT:",P.cuit],["N° de prestador:",P.nro_prestador],["Mes de prestación:",x.periodo],["Prestaciones a:","☐ Galeno Oro/Plata  ☐ Galeno Azul/Blanco"],["Zona:","☐ Capital Federal  ☐ Interior  ☐ Provincia de Buenos Aires"]],
+    foot:["Firma del profesional"], hojaTxt:true
+  },
+  "Avalian":{
+    title:"Avalian — Planilla de atención", rows:14, rh:9,
+    cols:[["fecha","Fecha de atención"],["afil","N° asociado"],["nom","Apellido y nombre del asociado"],["cod","Código de prestación"],["aut","N° autorización"],["firma","Conformidad del afiliado: firma"],["dni","Conformidad del afiliado: DNI"]],
+    head:(P,x)=>[["Prestador facturante:",P.nombre],["Profesional actuante:",P.nombre],["Período:",x.periodo]],
+    foot:[FP], note:"La presente planilla debe completarse por orden cronológico de atención y por profesional."
+  },
+  "Medifé":{
+    title:"Medifé — Planilla de atención y liquidación de prestaciones médicas", rows:12, rh:9.5,
+    cols:["orden","dia",["nom","Apellido y nombre"],["afil","N° de asociado"],"plan",["diag","Diagnóstico (detalle)"],["cod","Práctica (código)"],["importe","Valor a liquidar"],["firma","Firma del asociado"]],
+    head:(P,x)=>[["Código de prestador:",P.nro_prestador],["Apellido y nombre / razón social:",P.nombre],["Especialidad:",P.especialidad],["Fecha (mes / año):",x.periodo],["Lugar de la prestación:",P.localidad],["Tipo de asociado:","☐ Vol  ☐ Obl   ☐ Facturación  ☐ Refacturación"],["Lote N°:",""]],
+    foot:["Sello y firma del profesional"], total:true, note:"Verificar sticker al día en el endoso de la credencial y documento que acredite identidad. La información incluida tiene valor de Declaración Jurada."
+  },
+  "Osjera":{
+    title:"Osjera — Planilla de facturación de honorarios médicos", rows:14, rh:8.5,
+    cols:["diames",["afil","Número de asociación"],"plan","copago",["nom","Apellido y nombres"],"edad",["diag","Tipo de consulta – diagnóstico (descripción)"],["cod","Código"],["aut","Autorización N°"],["firma","Firma del asociado"]],
+    head:(P,x)=>[["CUIT:",P.cuit],["Apellido y nombres:",P.nombre],["Especialidad:",P.especialidad],["Mes / año:",x.periodo],["Hoja N°:",`${x.hoja} de ${x.hojas}`],["Zona:","☐ Capital  ☐ Provincia"]],
+    foot:["Fecha de entrega","Firma y sello profesional"]
+  },
+  "SanCorSalud":{
+    title:"SanCorSalud — Planilla de obtención / facturación para prestaciones que no requieren autorización previa", rows:13, rh:8.5,
+    cols:["fecha","plan",["afil","N° de asociado"],["nom","Apellido y nombre del asociado"],["dni","N° de documento"],["cod","Código de prestación"],["aut","N° de transacción"],["firma","Firma asociado"],"presc","importe"],
+    head:(P,x)=>[["N° de prestador:",P.nro_prestador],["Razón social:",P.nombre],["CUIT:",P.cuit],["Matrícula:",P.matricula],["Especialidad:",P.especialidad],["Producto:",""],["Modalidad:","☐ Normal  ☐ Refacturación"],["Período de liquidación (MM/AA):",x.periodo]],
+    foot:["Lugar y fecha","Firma del prestador","Sello","Se adjunta factura N°","Sello y firma recepción"], obs:true
+  },
+  "Jerárquicos":{ cards:true, port:true, rows:8,
+    title:"Jerárquicos — Registro de consultas médicas (profesional no registrado)",
+    head:(P,x)=>[["Apellido y nombre:",P.nombre],["C.U.I.T.:",P.cuit],["Convenio:",P.convenio],["Mes y año prestacional:",x.periodo]],
+    foot:["Firma y sello del prestador"],
+    note:"Estimado prestador: la planilla debe remitirse a la Administración de Jerárquicos, completa en todos sus campos, adjunta a la documentación de la facturación. Tiene carácter de Declaración Jurada. Se reconocen hasta DOS (2) consultas médicas mensuales por cada socio, por prestador."
+  }
+};
+/* Anexo I: una planilla por APSOT y otra por FSST */
+const anexo = os => ({
+  title:"Anexo I — Resumen de consultas y prácticas", rows:10, rh:10,
+  cols:[["fecha","Fecha de prestación"],["afil","N° de afiliado"],"letra",["nom","Apellido y nombre"],"tafil","tat",["prac","Práctica realizada"],["cod","Código de prestación"],["diag","Diagnóstico"],["firma","Firma afiliado"]],
+  head:(P,x)=>[["Mes / año:",x.periodo],["Prestador:",P.nombre],["Especialidad:",P.especialidad],["Matrícula:",P.matricula],["Obra social:",os]],
+  foot:["Firma prestador","Sello"]
+});
+OSCFG["APSOT"] = anexo("APSOT"); OSCFG["FSST"] = anexo("FSST");
+
+/* ---------- Armado de hojas ---------- */
+function headHTML(cfg,P,x){
+  return `<div class="hgrid">`+cfg.head(P,x).map(([l,v])=>`<div class="hl"><span>${esc(l)}</span><b>${esc(v||"")}</b></div>`).join("")+`</div>`;
+}
+function footHTML(cfg,x){
+  if(cfg.footHTML) return cfg.footHTML(x);
+  let h = "";
+  if(cfg.total) h += `<div class="hoja"><b>TOTAL $ ${esc(money(x.total))}</b></div>`;
+  if(cfg.obs)   h += `<div class="hl" style="margin-top:3mm"><span>Observaciones:</span></div>`;
+  h += `<div class="foot">`+cfg.foot.map(t=>`<div>${esc(t)}</div>`).join("")+`</div>`;
+  if(cfg.note)  h += `<div class="note">${esc(cfg.note)}</div>`;
+  if(cfg.hojaTxt) h += `<div class="hoja">Hoja ${x.hoja} de ${x.hojas}</div>`;
+  return h;
+}
+function tablaHTML(cfg,rows,startIdx){
+  const cols = cfg.cols.map(c => Array.isArray(c) ? {...C[c[0]], h:c[1]} : C[c]);
+  let h = `<table class="pl" style="--rh:${cfg.rh}mm${cfg.w?';table-layout:fixed':''}">`+(cfg.w?`<colgroup>${cfg.w.map(w=>`<col style="width:${w}%">`).join("")}</colgroup>`:"")+`<thead><tr>`+cols.map(c=>`<th>${esc(c.h)}</th>`).join("")+`</tr></thead><tbody>`;
+  for(let i=0;i<cfg.rows;i++){
+    const r = rows[i];
+    h += "<tr>"+cols.map(c=> r ? `<td>${c.raw ? c.f(r) : esc(c.f(r,startIdx+i))}</td>` : (c===C.orden ? `<td>${esc(c.f(null,startIdx+i))}</td>` : "<td></td>")).join("")+"</tr>";
+  }
+  return h+"</tbody></table>";
+}
+function cardsHTML(cfg,rows){
+  let h = "";
+  for(let i=0;i<cfg.rows;i++){
+    const r = rows[i];
+    h += `<div class="card-soc"><div class="l">
+      <div><span>Apellido y nombre:</span><b>${esc(r?.apellido_nombre)}</b><span style="margin-left:auto">N° socio:</span><b>${esc(r?.nro_afiliado)}</b></div>
+      <div><span>Diag.:</span><b>${esc(r?.diagnostico)}</b><span style="margin-left:auto">Plan:</span><b>${esc(r?.plan)}</b><span>Fecha:</span><b>${r?esc(fmt(r.fecha_atencion)):""}</b></div>
+    </div><div class="r">${r?`<img src="${esc(r.firma)}" alt=""><span>${esc(r.dni)}</span>`:"<span></span>"}<span>FIRMA Y D.N.I. SOCIO</span></div></div>`;
+  }
+  return h;
+}
+function generar(){
+  const os = $("pos").value, mes = $("pmes").value;
+  const cont = $("hojas"); cont.innerHTML = "";
+  if(!os || !mes){ $("pinfo").textContent = "Elegí obra social y mes."; return; }
+  const cfg = OSCFG[os];
+  const rows = filas.filter(r=>r.obra_social===os && r.fecha_atencion.startsWith(mes))
+                    .sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
+  const [y,m] = mes.split("-"), periodo = `${m}/${y}`;
+  const pend = rows.filter(pendiente).length;
+  $("pinfo").textContent = `${rows.length} registro(s) de ${os} en ${periodo}.`;
+  const pa = $("paviso");
+  const faltaPerfil = !perfil.nombre;
+  pa.hidden = !(pend || faltaPerfil);
+  pa.textContent = [pend?`${pend} registro(s) sin código o diagnóstico (completalos en Registros).`:"", faltaPerfil?"Completá “Mis datos” para el encabezado.":""].filter(Boolean).join(" ");
+  const hojas = Math.max(1, Math.ceil(rows.length / cfg.rows));
+  for(let p=0;p<hojas;p++){
+    const slice = rows.slice(p*cfg.rows,(p+1)*cfg.rows);
+    const x = {periodo, hoja:p+1, hojas, total:slice.reduce((s,r)=>s+(+r.importe||0),0)};
+    const div = document.createElement("div");
+    div.className = "sheet " + (cfg.port ? "port" : "land") + (cfg.cls ? " " + cfg.cls : "");
+    div.innerHTML = (cfg.titleHTML ? cfg.titleHTML() : `<h4>${esc(cfg.title)}</h4>`) + (cfg.headHTML ? cfg.headHTML(perfil,x) : headHTML(cfg,perfil,x)) + (cfg.cards ? cardsHTML(cfg,slice) : tablaHTML(cfg,slice,p*cfg.rows)) + footHTML(cfg,x);
+    cont.appendChild(div);
+  }
+}
+
+/* ---------- Impresión sobre el papel original (solo datos) ---------- */
+/* Posiciones medidas sobre la foto de la planilla (px). Hoja oficio horizontal 355,6 x 215,9 mm. */
+const PXM = 355.6/2000, PYM = 215.9/1225;
+const OVL = {
+  "Swiss Medical":{
+    rows:16, y0:312, pitch:48.5,
+    hdr:[["nombre",395,185,440],["matricula",915,181,120],["domicilio",1265,178,500],["telefono",1140,201,400],["periodo",1215,224,400],["especialidad",225,231,560],["hoja",1835,173,60]],
+    bounds:[118,180,317,649,1027,1253,1552,1721,1945],
+    cols:[["fecha",188,125],["socio",401,245],["nom",657,365],["prac",1034,215],["diag",1261,285],["firma",1560,155],["aut",1728,210]],
+    val:{
+      fecha:r=>fmt(r.fecha_atencion),
+      socio:r=>(r.nro_afiliado||"").replace(/^800006/,""),   // el papel ya trae 800006 impreso
+      nom:r=>r.apellido_nombre, prac:r=>r.practica||r.codigo_prestacion, diag:r=>r.diagnostico, aut:r=>r.nro_autorizacion
+    }
+  }
+};
+const ovKey = os => "ov_" + os;
+function ovLeer(os){ try{ const j = JSON.parse(localStorage.getItem(ovKey(os))||"null"); if(j){ $("ovdx").value=j.dx; $("ovdy").value=j.dy; $("ovs").value=j.s; } }catch(e){} }
+function ovGuardar(os){ try{ localStorage.setItem(ovKey(os), JSON.stringify({dx:$("ovdx").value,dy:$("ovdy").value,s:$("ovs").value})); }catch(e){} }
+function overlay(test){
+  const os = $("pos").value, mes = $("pmes").value, cont = $("hojas");
+  const cfg = OVL[os];
+  if(!cfg){ $("pinfo").textContent = "“Imprimir sobre papel original” todavía no está calibrado para " + (os||"esta obra social") + ". Por ahora solo Swiss Medical."; return false; }
+  if(!mes){ $("pinfo").textContent = "Elegí el mes."; return false; }
+  ovGuardar(os);
+  const dx = +$("ovdx").value||0, dy = +$("ovdy").value||0, sc = (+$("ovs").value||100)/100;
+  const rows = filas.filter(r=>r.obra_social===os && r.fecha_atencion.startsWith(mes))
+                    .sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
+  const [y,m] = mes.split("-"), periodo = `${m}/${y}`;
+  const hojas = Math.max(1, Math.ceil(rows.length/cfg.rows));
+  cont.innerHTML = "";
+  $("pinfo").textContent = `${rows.length} registro(s) de ${os} en ${periodo}. ${test?"Hoja de prueba: las líneas punteadas son solo guías.":"Poné la planilla original en la impresora."}`;
+  const T = (txt, xpx, ypx, wpx, raw) => `<div class="t" style="left:${(xpx*PXM).toFixed(2)}mm;top:${(ypx*PYM).toFixed(2)}mm;max-width:${(wpx*PXM).toFixed(2)}mm">${raw ? txt : esc(txt)}</div>`;
+  for(let p=0;p<hojas;p++){
+    const slice = rows.slice(p*cfg.rows,(p+1)*cfg.rows);
+    let h = "";
+    const hv = {nombre:perfil.nombre,matricula:perfil.matricula,domicilio:perfil.domicilio,telefono:perfil.telefono,periodo,especialidad:perfil.especialidad,hoja:String(p+1)};
+    for(const [k,x,yy,w] of cfg.hdr) h += T(hv[k]||"", x, yy, w);
+    slice.forEach((r,i)=>{
+      const cy = cfg.y0 + cfg.pitch*i;
+      for(const [k,x,w] of cfg.cols){
+        if(k==="firma") h += T(`<img src="${esc(r.firma)}" alt="">`, x, cy, w, true);
+        else h += T(cfg.val[k](r)||"", x, cy, w);
+      }
+    });
+    if(test){
+      const top = cfg.y0 - cfg.pitch/2, hgt = cfg.pitch*cfg.rows;
+      cfg.bounds.forEach(b => { h += `<div class="g" style="left:${(b*PXM).toFixed(2)}mm;top:${(top*PYM).toFixed(2)}mm;width:0;height:${(hgt*PYM).toFixed(2)}mm"></div>`; });
+      for(let i=0;i<=cfg.rows;i++) h += `<div class="g" style="left:${(cfg.bounds[0]*PXM).toFixed(2)}mm;top:${((top+cfg.pitch*i)*PYM).toFixed(2)}mm;width:${((cfg.bounds.at(-1)-cfg.bounds[0])*PXM).toFixed(2)}mm;height:0"></div>`;
+    }
+    const div = document.createElement("div"); div.className = "sheet ovl";
+    div.innerHTML = `<div class="ovl-in" style="transform:translate(${dx}mm,${dy}mm) scale(${sc})">${h}</div>`;
+    cont.appendChild(div);
+  }
+  return true;
+}
+$("ovl").onclick = () => { if(overlay(false)) setTimeout(()=>window.print(),150); };
+$("ovlTest").onclick = () => { if(overlay(true)) setTimeout(()=>window.print(),150); };
+$("pos").addEventListener("change", () => ovLeer($("pos").value));
+
+/* ---------- Registros ---------- */
+async function cargar(){
+  const { data, error } = await db.from("constancias").select("*").order("creado_en",{ascending:false}).limit(3000);
+  if(error){ $("cnt").textContent = "Error al cargar: " + error.message; return; }
+  filas = data; pintar();
+  const { data:pf } = await db.from("perfil").select("datos").eq("id",1).maybeSingle();
+  perfil = pf?.datos || {}; pintarPerfil();
+}
+function filtradas(){
+  const q = $("q").value.trim().toLowerCase(), os = $("fos").value, mes = $("fmes").value;
+  return filas.filter(r =>
+    (!q || (r.apellido_nombre||"").toLowerCase().includes(q) || (r.dni||"").includes(q) || (r.nro_afiliado||"").toLowerCase().includes(q)) &&
+    (!os || r.obra_social===os) && (!mes || r.fecha_atencion.startsWith(mes)));
+}
+function celda(tr, txt){ const td = document.createElement("td"); td.textContent = txt ?? ""; tr.appendChild(td); return td; }
+function pintar(){
+  const fs = filtradas(); $("cnt").textContent = fs.length + " registro(s)";
+  const tb = $("tb"); tb.textContent = "";
+  for(const r of fs){
+    const tr = document.createElement("tr");
+    celda(tr, fmt(r.fecha_atencion)); celda(tr, r.apellido_nombre); celda(tr, r.dni);
+    celda(tr, r.obra_social || "—"); celda(tr, r.nro_afiliado); celda(tr, r.codigo_prestacion); celda(tr, r.diagnostico);
+    const tf = document.createElement("td"), img = document.createElement("img"); img.src = r.firma; img.alt = "Firma"; tf.appendChild(img); tr.appendChild(tf);
+    const ta = document.createElement("td");
+    const b = document.createElement("button"); b.className = "sec mini"; b.textContent = pendiente(r) ? "Completar" : "Editar";
+    b.onclick = () => abrirModal(r); ta.appendChild(b);
+    if(pendiente(r)){ const s = document.createElement("span"); s.className = "pill"; s.textContent = "Pendiente"; s.style.marginLeft = "6px"; ta.appendChild(s); }
+    tr.appendChild(ta); tb.appendChild(tr);
+  }
+}
+["q","fos","fmes"].forEach(id => $(id).addEventListener("input", pintar));
+
+$("csv").onclick = () => {
+  const cols = ["fecha_atencion","obra_social","apellido_nombre","dni","nro_afiliado","plan","edad","motivo","practica","codigo_prestacion","diagnostico","nro_autorizacion","copago","importe","prescriptor","letra","tipo_afiliado","tipo_atencion"];
+  const q = v => `"${String(v ?? "").replace(/"/g,'""')}"`;
+  const lineas = [[...cols,"firmado"].map(q).join(";")];
+  for(const r of filtradas()) lineas.push([...cols.map(c => c==="fecha_atencion" ? fmt(r[c]) : r[c]), "Sí"].map(q).join(";"));
+  const blob = new Blob(["﻿"+lineas.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "registros-atencion.csv"; a.click();
+};
+
+/* ---------- Modal de edición ---------- */
+let editando = null;
+function campoHTML(c, v){
+  if(c.sep) return `<h3 class="sep">${esc(c.sep)}</h3>`;
+  const id = "m_" + c.k;
+  if(c.t === "select") return `<label>${esc(c.l)}<select id="${id}"><option value=""></option>${c.o.map(o=>`<option${o===v?" selected":""}>${esc(o)}</option>`).join("")}</select></label>`;
+  const type = c.t==="date" ? "date" : "text";
+  return `<label>${esc(c.l)}<input id="${id}" type="${type}" value="${esc(v ?? "")}"${c.t==="num"?' inputmode="decimal"':''}></label>`;
+}
+function abrirModal(r){
+  editando = r;
+  $("mtitulo").textContent = `${r.apellido_nombre} — ${fmt(r.fecha_atencion)}`;
+  $("mform").innerHTML = CAMPOS.map(c => campoHTML(c, c.k ? r[c.k] : null)).join("");
+  $("merr").textContent = ""; $("modal").hidden = false;
+}
+$("mcerrar").onclick = () => { $("modal").hidden = true; };
+$("mguardar").onclick = async () => {
+  const obj = {};
+  for(const c of CAMPOS){
+    if(!c.k) continue;
+    let v = $("m_"+c.k).value.trim();
+    if(c.t === "dni") v = v.replace(/\D/g,"");
+    if(c.t === "num")  v = v === "" ? null : Number(v.replace(",","."));
+    else if(c.t === "int") v = v === "" ? null : parseInt(v,10);
+    else if(v === "") v = null;
+    obj[c.k] = v;
+  }
+  if(!obj.apellido_nombre || !obj.dni || !obj.fecha_atencion){ $("merr").textContent = "Nombre, DNI y fecha son obligatorios."; return; }
+  const { error } = await db.from("constancias").update(obj).eq("id", editando.id);
+  if(error){ $("merr").textContent = "No se pudo guardar: " + error.message; return; }
+  Object.assign(editando, obj); $("modal").hidden = true; pintar();
+};
+
+/* ---------- Mis datos ---------- */
+function pintarPerfil(){
+  $("perfilForm").innerHTML = PERFIL.map(([k,l]) => `<label>${esc(l)}<input id="p_${k}" value="${esc(perfil[k] ?? "")}"></label>`).join("");
+}
+$("guardarPerfil").onclick = async () => {
+  const datos = {}; PERFIL.forEach(([k]) => { datos[k] = $("p_"+k).value.trim(); });
+  const { error } = await db.from("perfil").upsert({id:1, datos, actualizado:new Date().toISOString()});
+  $("pmsg").textContent = error ? "No se pudo guardar: " + error.message : "Guardado.";
+  if(!error) perfil = datos;
+};
+
+/* ---------- Pestañas y sesión ---------- */
+document.querySelectorAll(".tabs [data-tab]").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs [data-tab]").forEach(x => x.classList.toggle("on", x === b));
+  ["reg","plan","perfil"].forEach(t => $("t-"+t).hidden = t !== b.dataset.tab);
+});
+$("fos").innerHTML += OBRAS.map(o => `<option>${esc(o)}</option>`).join("");
+$("pos").innerHTML = `<option value="">Obra social…</option>` + OBRAS.map(o => `<option>${esc(o)}</option>`).join("");
+$("pmes").value = mesActual();
+$("generar").onclick = generar;
+$("imprimir").onclick = () => { if(!$("hojas").children.length) generar(); window.print(); };
+
+async function estado(){
+  const { data:{ session } } = await db.auth.getSession();
+  $("login").hidden = !!session; $("app").hidden = !session;
+  if(session) cargar();
+}
+$("entrar").onclick = async () => {
+  $("lerr").textContent = "";
+  const { error } = await db.auth.signInWithPassword({email:$("mail").value.trim(), password:$("pass").value});
+  if(error) $("lerr").textContent = "Email o contraseña incorrectos."; else estado();
+};
+$("salir").onclick = async () => { await db.auth.signOut(); estado(); };
+estado();
+</script>
+</body>
+</html>
