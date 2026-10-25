@@ -83,13 +83,11 @@
   .sw-foot{display:flex;justify-content:space-between;gap:10mm;margin-top:6mm;font-size:7pt;text-transform:uppercase}
   .sw-foot div{flex:1;display:flex;gap:2mm;align-items:flex-end}
   .sw-foot i{flex:1;border-bottom:1px solid #000;height:5mm}
-  .sheet.ovl{position:relative;width:355.6mm;height:215.9mm;padding:0;overflow:hidden;background:#fff}
-  .ovl-in{position:absolute;left:0;top:0;width:355.6mm;height:215.9mm;transform-origin:0 0}
+  .sheet.ovl{position:relative;padding:0;overflow:hidden;background:#fff}
+  .ovl-in{position:absolute;left:0;top:0;transform-origin:0 0}
   .ovl-in .t{position:absolute;transform:translateY(-50%);font:9.5pt Arial,Helvetica,sans-serif;white-space:nowrap;overflow:hidden;color:#000}
   .ovl-in .g{position:absolute;border:.2mm dashed #888;pointer-events:none}
   .ovl-in .t img{display:block;max-height:7mm;max-width:100%}
-  @page leg{size:355.6mm 215.9mm;margin:0}
-  .sheet.ovl{page:leg}
   @page land{size:A4 landscape;margin:6mm}
   @page port{size:A4 portrait;margin:6mm}
   .sheet.land{page:land}
@@ -101,7 +99,7 @@
     #hojas{display:block;overflow:visible}
     .sheet,.sheet.land,.sheet.port{border:0;break-after:page;margin:0;padding:0;width:auto;min-height:0}
     .sheet:last-child{break-after:auto}
-    .sheet.ovl{width:355.6mm!important;height:215.9mm!important;overflow:hidden!important}
+    .sheet.ovl{overflow:hidden!important}
   }
 </style>
 </head>
@@ -156,6 +154,7 @@
           <label class="cnt">Mover → (mm) <input id="ovdx" type="number" step="0.5" value="0" style="width:76px"></label>
           <label class="cnt">Mover ↓ (mm) <input id="ovdy" type="number" step="0.5" value="0" style="width:76px"></label>
           <label class="cnt">Escala (%) <input id="ovs" type="number" step="0.5" value="100" style="width:76px"></label>
+          <label class="cnt">Papel <select id="ovp"><option value="">Según la planilla</option><option value="a4">A4</option><option value="of">Oficio</option></select></label>
         </div>
         <p class="cnt" id="pinfo">Elegí obra social y mes. Si tenés el papel original del colegio médico, usá “Imprimir sobre papel original” (solo datos). La planilla completa trae líneas y título: usala solo sobre papel en blanco.</p>
         <p class="aviso" id="paviso" hidden></p>
@@ -310,7 +309,7 @@ const OSCFG = {
     head:(P,x)=>[["N° de prestador:",P.nro_prestador],["Razón social:",P.nombre],["CUIT:",P.cuit],["Matrícula:",P.matricula],["Especialidad:",P.especialidad],["Producto:",""],["Modalidad:","☐ Normal  ☐ Refacturación"],["Período de liquidación (MM/AA):",x.periodo]],
     foot:["Lugar y fecha","Firma del prestador","Sello","Se adjunta factura N°","Sello y firma recepción"], obs:true
   },
-  "Jerárquicos":{ cards:true, port:true, rows:8,
+  "Jerárquicos":{ cards:true, port:true, rows:9,
     title:"Jerárquicos — Registro de consultas médicas (profesional no registrado)",
     head:(P,x)=>[["Apellido y nombre:",P.nombre],["C.U.I.T.:",P.cuit],["Convenio:",P.convenio],["Mes y año prestacional:",x.periodo]],
     foot:["Firma y sello del prestador"],
@@ -386,57 +385,119 @@ function generar(){
 }
 
 /* ---------- Impresión sobre el papel original (solo datos) ---------- */
-/* Posiciones medidas sobre la foto de la planilla (px). Hoja oficio horizontal 355,6 x 215,9 mm. */
-const PXM = 355.6/2000, PYM = 215.9/1225;
+/* Posiciones medidas sobre la foto de cada planilla (px de la foto). Se escalan al ancho del papel. */
+const OF = [355.6,215.9], A4L = [297,210], A4P = [210,297];
+const sh = r => r.fecha_atencion.slice(8,10)+"/"+r.fecha_atencion.slice(5,7)+"/"+r.fecha_atencion.slice(2,4);
+const TAF = {Voluntario:"Vol.",Obligatorio:"Obl."}, TAT = {Ambulatorio:"Amb.",Domicilio:"Dom.","Internación":"Int."};
+const V = {
+  fecha:r=>fmt(r.fecha_atencion), short:sh, dd:r=>r.fecha_atencion.slice(8,10), mm:r=>r.fecha_atencion.slice(5,7), yy:r=>r.fecha_atencion.slice(2,4),
+  ddmm:r=>r.fecha_atencion.slice(8,10)+"/"+r.fecha_atencion.slice(5,7),
+  afil:r=>r.nro_afiliado, nom:r=>r.apellido_nombre, dni:r=>r.dni, edad:r=>r.edad, plan:r=>r.plan, letra:r=>r.letra,
+  tafil:r=>TAF[r.tipo_afiliado]||"", tat:r=>TAT[r.tipo_atencion]||"", prac:r=>r.practica||r.codigo_prestacion, pr:r=>r.practica,
+  cod:r=>r.codigo_prestacion, diag:r=>r.diagnostico, aut:r=>r.nro_autorizacion, copago:r=>money(r.copago), importe:r=>money(r.importe), presc:r=>r.prescriptor
+};
 const OVL = {
-  "Swiss Medical":{
-    rows:16, y0:312, pitch:48.5,
+  "Swiss Medical":{ page:OF, img:[2000,1225], rows:16, y0:312, pitch:48.5,
     hdr:[["nombre",395,185,440],["matricula",915,181,120],["domicilio",1265,178,500],["telefono",1140,201,400],["especialidad",225,231,560],["hoja",1835,173,60]],
     bounds:[118,180,317,649,1027,1253,1552,1721,1945],
     cols:[["fecha",188,125],["socio",401,245],["nom",657,365],["prac",1034,215],["diag",1261,285],["firma",1560,155],["aut",1728,210]],
-    val:{
-      fecha:r=>fmt(r.fecha_atencion),
-      socio:r=>(r.nro_afiliado||"").replace(/^800006/,""),   // el papel ya trae 800006 impreso
-      nom:r=>r.apellido_nombre, prac:r=>r.practica||r.codigo_prestacion, diag:r=>r.diagnostico, aut:r=>r.nro_autorizacion
-    }
+    val:{socio:r=>(r.nro_afiliado||"").replace(/^800006/,"")}   // el papel ya trae 800006 impreso
+  },
+  "APSOT":null, "FSST":null,
+  "OSTP y GP Chubut":{ page:OF, img:[2000,1230], rows:16, y0:359, pitch:45.5,
+    hdr:[["nombre",872,226,600]],
+    bounds:[120,206,498,888,1022,1324,1678,1882],
+    cols:[["short",126,78],["afil",212,280],["nom",504,380],["cod",894,125],["diag",1028,290],["firma",1330,345],["aut",1686,190]]
+  },
+  "Galeno":{ page:A4L, img:[2000,1419], rows:17, y0:575, pitch:38.3,
+    hdr:[["nombre",245,238,500],["especialidad",375,275,400],["matricula",405,313,330],["cuit",347,351,390],["nro_prestador",413,389,330]],
+    bounds:[194,268,580,936,1058,1378,1488,1600,1845],
+    cols:[["dd",204,56],["afil",274,300],["nom",586,345],["cod",940,108],["diag",1064,305],["aut",1384,98],["copago",1494,98],["firma",1606,230]]
+  },
+  "Avalian":{ page:A4L, img:[2000,1396], rows:15, y0:450, pitch:56.5,
+    hdr:[["nombre",370,245,680],["nombre",370,292,680]],
+    bounds:[145,287,458,837,1057,1291,1535,1757],
+    cols:[["dd",156,32],["mm",203,32],["yy",247,34],["afil",294,160],["nom",466,365],["cod",845,208],["aut",1065,222],["firma",1298,230],["dni",1542,210]]
+  },
+  "Medifé":{ page:A4L, img:[2000,1420], rows:12, y0:521, pitch:48.8,
+    hdr:[["nro_prestador",90,301,200],["nombre",306,301,570],["especialidad",892,301,240],["localidad",1372,288,480],["total",1495,1093,135]],
+    bounds:[80,120,172,516,760,888,1318,1477,1623,1865],
+    cols:[["dd",126,42],["nom",178,335],["afil",522,232],["plan",766,115],["diag",894,418],["cod",1324,148],["importe",1483,135],["firma",1630,230]]
+  },
+  "Osjera":{ page:A4L, img:[2000,1411], rows:14, y0:360, pitch:46.7,
+    hdr:[["cuit",372,183,400,{comb:33.2}],["nombre",776,181,415],["especialidad",1206,181,215]],
+    bounds:[145,242,470,541,582,905,942,980,1326,1426,1546,1791],
+    cols:[["ddmm",150,88],["afil",250,224,{comb:17.6}],["plan",474,64],["copago",545,34],["nom",588,312],["edad",909,30],["diag",984,338],["cod",1330,92],["aut",1430,112],["firma",1552,236]]
+  },
+  "Jerárquicos":{ page:A4P, img:[1416,2000], mode:"cards", rows:9, y0:604, pitch:118.4,
+    hdr:[["nombre",265,368,560],["cuit",845,372,380],["convenio",200,424,500]],
+    cardW:[105,1330], 
+    cols:[["nom",265,0,560],["afil",915,5,170],["diag",162,56,430],["plan",645,58,180],["dd",905,60,38],["mm",955,60,50],["yy",1025,60,50],["firma",1100,20,220],["dni",1130,58,180]]
+  },
+  "SanCorSalud":{ page:A4L, img:[2000,1390], rows:14, y0:418, pitch:53.4,
+    hdr:[["nro_prestador",330,277,300],["matricula",245,309,300],["nombre",880,270,235],["cuit",1175,265,260],["especialidad",866,302,300]],
+    bounds:[105,210,303,455,752,918,1123,1316,1513,1733,1887],
+    cols:[["short",112,92],["plan",215,84],["afil",308,142],["nom",460,288],["dni",758,156],["cod",924,194],["aut",1130,182],["firma",1322,185],["presc",1519,208],["importe",1739,142]]
   }
 };
+OVL["APSOT"] = OVL["FSST"] = { page:A4L, img:[2000,1442], rows:10, y0:566, pitch:64.5,
+  hdr:[["nombre",308,254,430],["especialidad",910,254,470],["matricula",1520,250,230],["os",323,326,300]],
+  bounds:[170,295,436,500,744,874,1018,1232,1393,1594,1750],
+  cols:[["short",176,115],["afil",300,132],["letra",441,55],["nom",506,232],["tafil",750,118],["tat",880,132],["pr",1024,202],["cod",1238,150],["diag",1399,190],["firma",1600,145]]
+};
 const ovKey = os => "ov_" + os;
-function ovLeer(os){ try{ const j = JSON.parse(localStorage.getItem(ovKey(os))||"null"); if(j){ $("ovdx").value=j.dx; $("ovdy").value=j.dy; $("ovs").value=j.s; } }catch(e){} }
-function ovGuardar(os){ try{ localStorage.setItem(ovKey(os), JSON.stringify({dx:$("ovdx").value,dy:$("ovdy").value,s:$("ovs").value})); }catch(e){} }
+function ovLeer(os){ try{ const j = JSON.parse(localStorage.getItem(ovKey(os))||"null"); if(j){ $("ovdx").value=j.dx; $("ovdy").value=j.dy; $("ovs").value=j.s; $("ovp").value=j.p||""; } }catch(e){} }
+function ovGuardar(os){ try{ localStorage.setItem(ovKey(os), JSON.stringify({dx:$("ovdx").value,dy:$("ovdy").value,s:$("ovs").value,p:$("ovp").value})); }catch(e){} }
 function overlay(test){
   const os = $("pos").value, mes = $("pmes").value, cont = $("hojas");
   const cfg = OVL[os];
-  if(!cfg){ $("pinfo").textContent = "“Imprimir sobre papel original” todavía no está calibrado para " + (os||"esta obra social") + ". Por ahora solo Swiss Medical."; return false; }
+  if(!cfg){ $("pinfo").textContent = "Elegí la obra social."; return false; }
   if(!mes){ $("pinfo").textContent = "Elegí el mes."; return false; }
   ovGuardar(os);
   const dx = +$("ovdx").value||0, dy = +$("ovdy").value||0, sc = (+$("ovs").value||100)/100;
+  const pv = $("ovp").value, page = pv==="a4" ? (cfg.page[0]>cfg.page[1]?A4L:A4P) : pv==="of" ? (cfg.page[0]>cfg.page[1]?OF:[OF[1],OF[0]]) : cfg.page;
+  const K = page[0]/cfg.img[0];            // mm por px de la foto
+  let st = $("pgs"); if(!st){ st = document.createElement("style"); st.id = "pgs"; document.head.appendChild(st); }
+  st.textContent = `@media print{@page{size:${page[0]}mm ${page[1]}mm;margin:0}.sheet.ovl{width:${page[0]}mm!important;height:${page[1]}mm!important}}`;
   const rows = filas.filter(r=>r.obra_social===os && r.fecha_atencion.startsWith(mes))
                     .sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
   const [y,m] = mes.split("-"), periodo = `${m}/${y}`;
   const hojas = Math.max(1, Math.ceil(rows.length/cfg.rows));
   cont.innerHTML = "";
   $("pinfo").textContent = `${rows.length} registro(s) de ${os} en ${periodo}. ${test?"Hoja de prueba: las líneas punteadas son solo guías.":"Poné la planilla original en la impresora."}`;
-  const T = (txt, xpx, ypx, wpx, raw) => `<div class="t" style="left:${(xpx*PXM).toFixed(2)}mm;top:${(ypx*PYM).toFixed(2)}mm;max-width:${(wpx*PXM).toFixed(2)}mm">${raw ? txt : esc(txt)}</div>`;
+  const mm = v => (v*K).toFixed(2)+"mm";
+  const T = (txt, x, yy, w, raw) => `<div class="t" style="left:${mm(x)};top:${mm(yy)};max-width:${mm(w)}">${raw ? txt : esc(txt)}</div>`;
+  const comb = (txt, x, yy, pitch, w) => String(txt).slice(0, w ? Math.max(1, Math.floor(w/pitch)) : 99).split("").map((c,i)=>T(c, x+i*pitch, yy, pitch)).join("");
+  const valor = (k,r) => ((cfg.val&&cfg.val[k]) || V[k] || (()=>""))(r);
   for(let p=0;p<hojas;p++){
     const slice = rows.slice(p*cfg.rows,(p+1)*cfg.rows);
+    const hv = {nombre:perfil.nombre,matricula:perfil.matricula,domicilio:perfil.domicilio,telefono:perfil.telefono,especialidad:perfil.especialidad,
+                cuit:(perfil.cuit||"").replace(/\D/g,""),nro_prestador:perfil.nro_prestador,localidad:perfil.localidad,convenio:perfil.convenio,
+                hoja:String(p+1),os,total:money(slice.reduce((t,r)=>t+(+r.importe||0),0))};
     let h = "";
-    const hv = {nombre:perfil.nombre,matricula:perfil.matricula,domicilio:perfil.domicilio,telefono:perfil.telefono,periodo,especialidad:perfil.especialidad,hoja:String(p+1)};
-    for(const [k,x,yy,w] of cfg.hdr) h += T(hv[k]||"", x, yy, w);
+    for(const [k,x,yy,w,o] of cfg.hdr) h += (o&&o.comb) ? comb(hv[k]||"", x, yy, o.comb, w) : T(hv[k]||"", x, yy, w);
     slice.forEach((r,i)=>{
-      const cy = cfg.y0 + cfg.pitch*i;
-      for(const [k,x,w] of cfg.cols){
-        if(k==="firma") h += T(`<img src="${esc(r.firma)}" alt="">`, x, cy, w, true);
-        else h += T(cfg.val[k](r)||"", x, cy, w);
+      const base = cfg.y0 + cfg.pitch*i;
+      for(const [k,x,a,b,c] of cfg.cols){
+        const cards = cfg.mode==="cards";
+        const yy = cards ? base + a : base, w = cards ? b : a, o = cards ? c : b;
+        if(k==="firma") h += T(`<img src="${esc(r.firma)}" alt="">`, x, yy, w, true);
+        else { const v = valor(k,r) ?? ""; h += (o&&o.comb) ? comb(v, x, yy, o.comb, w) : T(v, x, yy, w); }
       }
     });
     if(test){
-      const top = cfg.y0 - cfg.pitch/2, hgt = cfg.pitch*cfg.rows;
-      cfg.bounds.forEach(b => { h += `<div class="g" style="left:${(b*PXM).toFixed(2)}mm;top:${(top*PYM).toFixed(2)}mm;width:0;height:${(hgt*PYM).toFixed(2)}mm"></div>`; });
-      for(let i=0;i<=cfg.rows;i++) h += `<div class="g" style="left:${(cfg.bounds[0]*PXM).toFixed(2)}mm;top:${((top+cfg.pitch*i)*PYM).toFixed(2)}mm;width:${((cfg.bounds.at(-1)-cfg.bounds[0])*PXM).toFixed(2)}mm;height:0"></div>`;
+      const g = (l,t,w,hh) => `<div class="g" style="left:${mm(l)};top:${mm(t)};width:${mm(w)};height:${mm(hh)}"></div>`;
+      if(cfg.mode==="cards"){
+        for(let i=0;i<cfg.rows;i++) h += g(cfg.cardW[0], cfg.y0-30+cfg.pitch*i, cfg.cardW[1]-cfg.cardW[0], cfg.pitch);
+      } else {
+        const top = cfg.y0 - cfg.pitch/2;
+        cfg.bounds.forEach(b => { h += g(b, top, 0, cfg.pitch*cfg.rows); });
+        for(let i=0;i<=cfg.rows;i++) h += g(cfg.bounds[0], top+cfg.pitch*i, cfg.bounds.at(-1)-cfg.bounds[0], 0);
+      }
     }
     const div = document.createElement("div"); div.className = "sheet ovl";
-    div.innerHTML = `<div class="ovl-in" style="transform:translate(${dx}mm,${dy}mm) scale(${sc})">${h}</div>`;
+    div.style.width = page[0]+"mm"; div.style.height = page[1]+"mm";
+    div.innerHTML = `<div class="ovl-in" style="width:${page[0]}mm;height:${page[1]}mm;transform:translate(${dx}mm,${dy}mm) scale(${sc})">${h}</div>`;
     cont.appendChild(div);
   }
   return true;
