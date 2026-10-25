@@ -100,8 +100,11 @@
   .rc-box{position:absolute;left:11mm;right:11mm;top:100mm;bottom:27mm;border:.5mm solid #0b6e6e;border-radius:6mm;padding:4mm 5mm;background:rgba(255,255,255,.55);display:flex;flex-direction:column}
   .rc-l{font:700 7.5pt Arial,sans-serif;color:#0b6e6e;letter-spacing:.3px}
   .rc-t{min-height:12mm;font-size:8.5pt;color:#000;padding:1mm 0 2mm}
-  .rc-hw{flex:1;min-height:0;margin:1.5mm 0 1mm;display:flex;align-items:center;justify-content:center;border-top:.2mm dotted #8fc0bc}
-  .rc-hw img{max-width:100%;max-height:100%;object-fit:contain}
+  .rc-hw{flex:1;min-height:0;margin:1.5mm 0 1mm;display:flex;justify-content:center}
+  .rc-hwi{position:relative;height:100%;aspect-ratio:2/1;max-width:100%}
+  .rc-hwi i{position:absolute;left:0;right:0;border-top:.25mm solid #8fc0bc;height:0}
+  .rc-hwi u{position:absolute;left:0;top:-3.2mm;text-decoration:none;font:700 6.5pt Arial,sans-serif;color:#0b6e6e;font-style:normal}
+  .rc-hwi img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
   .rc-sign{margin-top:auto}
   .rc-img{height:24mm;display:flex;align-items:flex-end;justify-content:center}
   .rc-img img{max-height:24mm;max-width:100%}
@@ -434,8 +437,8 @@ function recetaHTML(r,P){
     </div>
     <div class="rc-box">
       <div class="rc-l">DIAGNÓSTICO</div><div class="rc-t">${v(r?.diagnostico)}</div>
-      <div class="rc-l">FIRMA, ACLARACIÓN Y DNI <span style="font-weight:400">(manuscrito del afiliado)</span></div>
-      <div class="rc-hw">${r?`<img src="${esc(r.firma)}" alt="">`:""}</div>
+      <div class="rc-l">FIRMA, ACLARACIÓN Y DNI</div>
+      <div class="rc-hw"><div class="rc-hwi"><i style="top:30%"><u>Firma</u></i><i style="top:63%"><u>Aclaración</u></i><i style="top:96%"><u>DNI</u></i>${r?`<img src="${esc(r.firma)}" alt="">`:""}</div></div>
       <div class="rc-conf">Constancia de atención. Los datos consignados tienen carácter de declaración jurada.</div>
     </div>
     <div class="rc-foot"><div><i></i>${v(wa)}</div><div><i></i>${v(P.email)}</div><div><i></i>${v([P.domicilio,P.localidad].filter(Boolean).join(", "))}</div><div><i></i>Tel. 0297 455-9987</div></div>

@@ -23,7 +23,10 @@
   .req{color:var(--err);font-weight:700}
   .sigbox{border:1.5px dashed var(--line);border-radius:8px;background:#fff;position:relative;touch-action:none}
   canvas{display:block;width:100%;height:180px;touch-action:none}
-  canvas.alto{height:280px}
+  canvas.alto{height:auto;aspect-ratio:2/1}
+  .guias{position:absolute;inset:0;pointer-events:none}
+  .guias i{position:absolute;left:8px;right:8px;border-top:1px solid #b7c7cc;height:0}
+  .guias u{position:absolute;left:0;top:-14px;text-decoration:none;font:700 11px system-ui,sans-serif;color:#8a96a3;font-style:normal}
   .sigbox .hint{position:absolute;inset:0;display:grid;place-items:center;color:#8a96a3;pointer-events:none;font-size:.95rem}
   .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
   .chk{display:flex;gap:10px;align-items:flex-start;font-weight:400}
@@ -92,6 +95,7 @@
       </div>
       <div class="sigbox">
         <canvas id="pad" aria-label="Espacio para firmar con el dedo"></canvas>
+        <div class="guias" id="guias" hidden><i style="top:30%"><u>Firma</u></i><i style="top:63%"><u>Aclaración</u></i><i style="top:96%"><u>DNI</u></i></div>
         <div class="hint" id="hint">Firmá acá con el dedo</div>
       </div>
     </div>
@@ -146,7 +150,8 @@ window.addEventListener("load",ajustar);
 $("os").addEventListener("change",()=>{
   const o = $("os").value==="OSPE";
   cv.classList.toggle("alto",o);
-  $("hint").textContent = o ? "Firmá y escribí tu aclaración y DNI, a mano, acá" : "Firmá acá con el dedo";
+  $("guias").hidden = !o;
+  $("hint").textContent = o ? "Escribí a mano: firma, aclaración y DNI" : "Firmá acá con el dedo";
   ajustar();
 });
 
