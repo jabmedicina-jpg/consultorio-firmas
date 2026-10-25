@@ -147,17 +147,17 @@
         <div class="bar" style="margin-bottom:6px">
           <select id="pos" aria-label="Obra social"></select>
           <input id="pmes" type="month" aria-label="Mes de prestación">
-          <button id="generar">Generar planilla</button>
-          <button id="imprimir" class="sec">Imprimir / guardar PDF</button>
+          <button id="generar" class="sec">Ver planilla completa (papel en blanco)</button>
+          <button id="imprimir" class="sec">Imprimir planilla completa</button>
         </div>
         <div class="bar" style="margin:8px 0 6px">
-          <button id="ovl" class="sec">Imprimir sobre papel original</button>
+          <button id="ovl">Imprimir sobre papel original (solo datos)</button>
           <button id="ovlTest" class="sec">Hoja de prueba con guías</button>
           <label class="cnt">Mover → (mm) <input id="ovdx" type="number" step="0.5" value="0" style="width:76px"></label>
           <label class="cnt">Mover ↓ (mm) <input id="ovdy" type="number" step="0.5" value="0" style="width:76px"></label>
           <label class="cnt">Escala (%) <input id="ovs" type="number" step="0.5" value="100" style="width:76px"></label>
         </div>
-        <p class="cnt" id="pinfo">Elegí obra social y mes. Se arma con los registros de ese mes y tus datos de “Mis datos”.</p>
+        <p class="cnt" id="pinfo">Elegí obra social y mes. Si tenés el papel original del colegio médico, usá “Imprimir sobre papel original” (solo datos). La planilla completa trae líneas y título: usala solo sobre papel en blanco.</p>
         <p class="aviso" id="paviso" hidden></p>
       </div>
       <div id="hojas"></div>
