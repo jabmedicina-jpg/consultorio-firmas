@@ -68,6 +68,28 @@
   .card-soc .r{border-left:1px solid #000;padding:1mm;text-align:center;font-size:7pt;display:flex;flex-direction:column;justify-content:space-between;align-items:center}
   .card-soc .r img{max-height:14mm;max-width:100%}
 
+  .sw-top{display:flex;align-items:center;gap:6mm;margin-bottom:3mm}
+  .sw-marca{font:700 10pt Arial,Helvetica,sans-serif;white-space:nowrap;color:#000}
+  .sw-tit{flex:1;border:1px solid #000;padding:1.5mm 3mm;text-align:center;font:italic 700 11pt Arial,Helvetica,sans-serif}
+  .sw-head{display:grid;grid-template-columns:50fr 11fr 44fr 12fr;grid-template-rows:minmax(17mm,auto) minmax(10mm,auto);border:1px solid #000;margin-bottom:0}
+  .sw-head>div{border-right:1px solid #000;border-bottom:1px solid #000;padding:.8mm 1.5mm;font-size:6.5pt;color:#333;text-transform:uppercase}
+  .sw-head>div b{display:block;font-size:9pt;color:#000;text-transform:none;font-weight:600;margin-top:.5mm}
+  .sw-head .dom{display:grid;grid-template-rows:1fr 1fr;padding:0}
+  .sw-head .dom>div{padding:.8mm 1.5mm}
+  .sw-head .dom>div+div{border-top:1px solid #000}
+  .sw-head .esp{grid-column:1/3}
+  .sw-head .per{grid-column:3/5}
+  .sw-head>div:nth-child(4),.sw-head .per{border-right:0}
+  .sw-foot{display:flex;justify-content:space-between;gap:10mm;margin-top:6mm;font-size:7pt;text-transform:uppercase}
+  .sw-foot div{flex:1;display:flex;gap:2mm;align-items:flex-end}
+  .sw-foot i{flex:1;border-bottom:1px solid #000;height:5mm}
+  .sheet.ovl{position:relative;width:355.6mm;height:215.9mm;padding:0;overflow:hidden;background:#fff}
+  .ovl-in{position:absolute;left:0;top:0;width:355.6mm;height:215.9mm;transform-origin:0 0}
+  .ovl-in .t{position:absolute;transform:translateY(-50%);font:9.5pt Arial,Helvetica,sans-serif;white-space:nowrap;overflow:hidden;color:#000}
+  .ovl-in .g{position:absolute;border:.2mm dashed #888;pointer-events:none}
+  .ovl-in .t img{display:block;max-height:7mm;max-width:100%}
+  @page leg{size:355.6mm 215.9mm;margin:0}
+  .sheet.ovl{page:leg}
   @page land{size:A4 landscape;margin:6mm}
   @page port{size:A4 portrait;margin:6mm}
   .sheet.land{page:land}
@@ -79,6 +101,7 @@
     #hojas{display:block;overflow:visible}
     .sheet,.sheet.land,.sheet.port{border:0;break-after:page;margin:0;padding:0;width:auto;min-height:0}
     .sheet:last-child{break-after:auto}
+    .sheet.ovl{width:355.6mm!important;height:215.9mm!important;overflow:hidden!important}
   }
 </style>
 </head>
@@ -126,6 +149,13 @@
           <input id="pmes" type="month" aria-label="Mes de prestación">
           <button id="generar">Generar planilla</button>
           <button id="imprimir" class="sec">Imprimir / guardar PDF</button>
+        </div>
+        <div class="bar" style="margin:8px 0 6px">
+          <button id="ovl" class="sec">Imprimir sobre papel original</button>
+          <button id="ovlTest" class="sec">Hoja de prueba con guías</button>
+          <label class="cnt">Mover → (mm) <input id="ovdx" type="number" step="0.5" value="0" style="width:76px"></label>
+          <label class="cnt">Mover ↓ (mm) <input id="ovdy" type="number" step="0.5" value="0" style="width:76px"></label>
+          <label class="cnt">Escala (%) <input id="ovs" type="number" step="0.5" value="100" style="width:76px"></label>
         </div>
         <p class="cnt" id="pinfo">Elegí obra social y mes. Se arma con los registros de ese mes y tus datos de “Mis datos”.</p>
         <p class="aviso" id="paviso" hidden></p>
@@ -237,10 +267,18 @@ const OSCFG = {
     foot:["Firma del profesional"]
   },
   "Swiss Medical":{
-    title:"Swiss Medical Group — Registro de pacientes para consultas y prácticas", rows:16, rh:8,
-    cols:["orden","fecha",["afil","Número de socio"],["nom","Apellido y nombre del socio"],["prac","Práctica"],"diag",["firma","Firma del socio"],["aut","N° de validación"]],
-    head:(P,x)=>[["Profesional:",P.nombre],["N° Mat.:",P.matricula],["Especialidad:",P.especialidad],["Domicilio del consultorio:",P.domicilio],["Teléfono:",P.telefono],["Período facturado:",x.periodo],["Hoja N°:",`${x.hoja} de ${x.hojas}`]],
-    foot:["Número de boletín consultado","Firma del profesional"]
+    rows:16, rh:8, w:[5,8,15,23,12,14,12,11], cls:"sw",
+    cols:[["orden","Nº DE ORDEN"],["fecha","FECHA"],["afil","NÚMERO DE SOCIO"],["nom","APELLIDO Y NOMBRE DEL SOCIO"],["prac","PRÁCTICA"],["diag","DIAGNÓSTICO"],["firma","FIRMA DEL SOCIO"],["aut","Nº VALIDACIÓN"]],
+    titleHTML:()=>`<div class="sw-top"><div class="sw-marca">Swiss Medical Group</div><div class="sw-tit">REGISTRO DE PACIENTES PARA CONSULTAS Y PRACTICAS</div></div>`,
+    headHTML:(P,x)=>`<div class="sw-head">
+      <div>Nombre y apellido del profesional<b>${esc(P.nombre)}</b></div>
+      <div>Nº Mat.<b>${esc(P.matricula)}</b></div>
+      <div class="dom"><div>Domicilio del consultorio<b>${esc(P.domicilio)}</b></div><div>Teléfono<b>${esc(P.telefono)}</b></div></div>
+      <div>Hoja Nº<b>${x.hoja}</b></div>
+      <div class="esp">Especialidad<b>${esc(P.especialidad)}</b></div>
+      <div class="per">Período facturado<b>${esc(x.periodo)}</b></div>
+    </div>`,
+    footHTML:()=>`<div class="sw-foot"><div>Número de boletín consultado<i></i></div><div>Firma del profesional<i></i></div></div>`
   },
   "Galeno":{
     title:"Galeno — Planilla de consultas y prácticas ambulatorias", rows:15, rh:8.5,
@@ -293,6 +331,7 @@ function headHTML(cfg,P,x){
   return `<div class="hgrid">`+cfg.head(P,x).map(([l,v])=>`<div class="hl"><span>${esc(l)}</span><b>${esc(v||"")}</b></div>`).join("")+`</div>`;
 }
 function footHTML(cfg,x){
+  if(cfg.footHTML) return cfg.footHTML(x);
   let h = "";
   if(cfg.total) h += `<div class="hoja"><b>TOTAL $ ${esc(money(x.total))}</b></div>`;
   if(cfg.obs)   h += `<div class="hl" style="margin-top:3mm"><span>Observaciones:</span></div>`;
@@ -303,10 +342,10 @@ function footHTML(cfg,x){
 }
 function tablaHTML(cfg,rows,startIdx){
   const cols = cfg.cols.map(c => Array.isArray(c) ? {...C[c[0]], h:c[1]} : C[c]);
-  let h = `<table class="pl" style="--rh:${cfg.rh}mm"><thead><tr>`+cols.map(c=>`<th>${esc(c.h)}</th>`).join("")+`</tr></thead><tbody>`;
+  let h = `<table class="pl" style="--rh:${cfg.rh}mm${cfg.w?';table-layout:fixed':''}">`+(cfg.w?`<colgroup>${cfg.w.map(w=>`<col style="width:${w}%">`).join("")}</colgroup>`:"")+`<thead><tr>`+cols.map(c=>`<th>${esc(c.h)}</th>`).join("")+`</tr></thead><tbody>`;
   for(let i=0;i<cfg.rows;i++){
     const r = rows[i];
-    h += "<tr>"+cols.map(c=> r ? `<td>${c.raw ? c.f(r) : esc(c.f(r,startIdx+i))}</td>` : "<td></td>").join("")+"</tr>";
+    h += "<tr>"+cols.map(c=> r ? `<td>${c.raw ? c.f(r) : esc(c.f(r,startIdx+i))}</td>` : (c===C.orden ? `<td>${esc(c.f(null,startIdx+i))}</td>` : "<td></td>")).join("")+"</tr>";
   }
   return h+"</tbody></table>";
 }
@@ -340,11 +379,71 @@ function generar(){
     const slice = rows.slice(p*cfg.rows,(p+1)*cfg.rows);
     const x = {periodo, hoja:p+1, hojas, total:slice.reduce((s,r)=>s+(+r.importe||0),0)};
     const div = document.createElement("div");
-    div.className = "sheet " + (cfg.port ? "port" : "land");
-    div.innerHTML = `<h4>${esc(cfg.title)}</h4>` + headHTML(cfg,perfil,x) + (cfg.cards ? cardsHTML(cfg,slice) : tablaHTML(cfg,slice,p*cfg.rows)) + footHTML(cfg,x);
+    div.className = "sheet " + (cfg.port ? "port" : "land") + (cfg.cls ? " " + cfg.cls : "");
+    div.innerHTML = (cfg.titleHTML ? cfg.titleHTML() : `<h4>${esc(cfg.title)}</h4>`) + (cfg.headHTML ? cfg.headHTML(perfil,x) : headHTML(cfg,perfil,x)) + (cfg.cards ? cardsHTML(cfg,slice) : tablaHTML(cfg,slice,p*cfg.rows)) + footHTML(cfg,x);
     cont.appendChild(div);
   }
 }
+
+/* ---------- Impresión sobre el papel original (solo datos) ---------- */
+/* Posiciones medidas sobre la foto de la planilla (px). Hoja oficio horizontal 355,6 x 215,9 mm. */
+const PXM = 355.6/2000, PYM = 215.9/1225;
+const OVL = {
+  "Swiss Medical":{
+    rows:16, y0:312, pitch:48.5,
+    hdr:[["nombre",395,185,440],["matricula",915,181,120],["domicilio",1265,178,500],["telefono",1140,201,400],["periodo",1215,224,400],["especialidad",225,231,560],["hoja",1835,173,60]],
+    bounds:[118,180,317,649,1027,1253,1552,1721,1945],
+    cols:[["fecha",188,125],["socio",401,245],["nom",657,365],["prac",1034,215],["diag",1261,285],["firma",1560,155],["aut",1728,210]],
+    val:{
+      fecha:r=>fmt(r.fecha_atencion),
+      socio:r=>(r.nro_afiliado||"").replace(/^800006/,""),   // el papel ya trae 800006 impreso
+      nom:r=>r.apellido_nombre, prac:r=>r.practica||r.codigo_prestacion, diag:r=>r.diagnostico, aut:r=>r.nro_autorizacion
+    }
+  }
+};
+const ovKey = os => "ov_" + os;
+function ovLeer(os){ try{ const j = JSON.parse(localStorage.getItem(ovKey(os))||"null"); if(j){ $("ovdx").value=j.dx; $("ovdy").value=j.dy; $("ovs").value=j.s; } }catch(e){} }
+function ovGuardar(os){ try{ localStorage.setItem(ovKey(os), JSON.stringify({dx:$("ovdx").value,dy:$("ovdy").value,s:$("ovs").value})); }catch(e){} }
+function overlay(test){
+  const os = $("pos").value, mes = $("pmes").value, cont = $("hojas");
+  const cfg = OVL[os];
+  if(!cfg){ $("pinfo").textContent = "“Imprimir sobre papel original” todavía no está calibrado para " + (os||"esta obra social") + ". Por ahora solo Swiss Medical."; return false; }
+  if(!mes){ $("pinfo").textContent = "Elegí el mes."; return false; }
+  ovGuardar(os);
+  const dx = +$("ovdx").value||0, dy = +$("ovdy").value||0, sc = (+$("ovs").value||100)/100;
+  const rows = filas.filter(r=>r.obra_social===os && r.fecha_atencion.startsWith(mes))
+                    .sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
+  const [y,m] = mes.split("-"), periodo = `${m}/${y}`;
+  const hojas = Math.max(1, Math.ceil(rows.length/cfg.rows));
+  cont.innerHTML = "";
+  $("pinfo").textContent = `${rows.length} registro(s) de ${os} en ${periodo}. ${test?"Hoja de prueba: las líneas punteadas son solo guías.":"Poné la planilla original en la impresora."}`;
+  const T = (txt, xpx, ypx, wpx, raw) => `<div class="t" style="left:${(xpx*PXM).toFixed(2)}mm;top:${(ypx*PYM).toFixed(2)}mm;max-width:${(wpx*PXM).toFixed(2)}mm">${raw ? txt : esc(txt)}</div>`;
+  for(let p=0;p<hojas;p++){
+    const slice = rows.slice(p*cfg.rows,(p+1)*cfg.rows);
+    let h = "";
+    const hv = {nombre:perfil.nombre,matricula:perfil.matricula,domicilio:perfil.domicilio,telefono:perfil.telefono,periodo,especialidad:perfil.especialidad,hoja:String(p+1)};
+    for(const [k,x,yy,w] of cfg.hdr) h += T(hv[k]||"", x, yy, w);
+    slice.forEach((r,i)=>{
+      const cy = cfg.y0 + cfg.pitch*i;
+      for(const [k,x,w] of cfg.cols){
+        if(k==="firma") h += T(`<img src="${esc(r.firma)}" alt="">`, x, cy, w, true);
+        else h += T(cfg.val[k](r)||"", x, cy, w);
+      }
+    });
+    if(test){
+      const top = cfg.y0 - cfg.pitch/2, hgt = cfg.pitch*cfg.rows;
+      cfg.bounds.forEach(b => { h += `<div class="g" style="left:${(b*PXM).toFixed(2)}mm;top:${(top*PYM).toFixed(2)}mm;width:0;height:${(hgt*PYM).toFixed(2)}mm"></div>`; });
+      for(let i=0;i<=cfg.rows;i++) h += `<div class="g" style="left:${(cfg.bounds[0]*PXM).toFixed(2)}mm;top:${((top+cfg.pitch*i)*PYM).toFixed(2)}mm;width:${((cfg.bounds.at(-1)-cfg.bounds[0])*PXM).toFixed(2)}mm;height:0"></div>`;
+    }
+    const div = document.createElement("div"); div.className = "sheet ovl";
+    div.innerHTML = `<div class="ovl-in" style="transform:translate(${dx}mm,${dy}mm) scale(${sc})">${h}</div>`;
+    cont.appendChild(div);
+  }
+  return true;
+}
+$("ovl").onclick = () => { if(overlay(false)) setTimeout(()=>window.print(),150); };
+$("ovlTest").onclick = () => { if(overlay(true)) setTimeout(()=>window.print(),150); };
+$("pos").addEventListener("change", () => ovLeer($("pos").value));
 
 /* ---------- Registros ---------- */
 async function cargar(){
