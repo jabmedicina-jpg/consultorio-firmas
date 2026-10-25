@@ -20,8 +20,10 @@
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media (max-width:420px){.grid2{grid-template-columns:1fr}}
   .opt{font-weight:400;color:var(--mut)}
+  .req{color:var(--err);font-weight:700}
   .sigbox{border:1.5px dashed var(--line);border-radius:8px;background:#fff;position:relative;touch-action:none}
   canvas{display:block;width:100%;height:180px;touch-action:none}
+  canvas.alto{height:280px}
   .sigbox .hint{position:absolute;inset:0;display:grid;place-items:center;color:#8a96a3;pointer-events:none;font-size:.95rem}
   .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
   .chk{display:flex;gap:10px;align-items:flex-start;font-weight:400}
@@ -41,7 +43,7 @@
   <p class="sub" id="sub">Constancia de atención</p>
 
   <form id="f" novalidate>
-    <label>Obra social
+    <label>Obra social <span class="opt">(opcional)</span>
       <select id="os" required>
         <option value="">Elegí tu obra social</option>
         <option>APSOT</option>
@@ -54,13 +56,14 @@
         <option>Osjera</option>
         <option>Jerárquicos</option>
         <option>SanCorSalud</option>
+        <option>OSPE</option>
       </select>
     </label>
-    <label>Apellido y nombre
+    <label>Apellido y nombre <span class="req">*</span>
       <input id="nombre" autocomplete="name" required maxlength="120">
     </label>
     <div class="grid2">
-      <label>N° de afiliado / socio
+      <label>N° de afiliado / socio <span class="opt">(opcional)</span>
         <input id="afiliado" autocomplete="off" required maxlength="30" placeholder="Como figura en tu credencial">
       </label>
       <label>Plan <span class="opt">(opcional)</span>
@@ -68,14 +71,14 @@
       </label>
     </div>
     <div class="grid2">
-      <label>DNI (solo números)
+      <label>DNI (solo números) <span class="req">*</span>
         <input id="dni" inputmode="numeric" autocomplete="off" required maxlength="9" placeholder="12345678">
       </label>
       <label>Edad <span class="opt">(opcional)</span>
         <input id="edad" inputmode="numeric" autocomplete="off" maxlength="3">
       </label>
     </div>
-    <label>Fecha de atención
+    <label>Fecha de atención <span class="req">*</span>
       <input id="fecha" type="date" required>
     </label>
     <label>Motivo de consulta <span class="opt">(opcional)</span>
@@ -84,7 +87,7 @@
 
     <div>
       <div class="row" style="margin-bottom:6px">
-        <strong style="font-size:.95rem">Firma</strong>
+        <strong style="font-size:.95rem">Firma <span class="req">*</span></strong>
         <button type="button" class="link" id="borrar">Borrar firma</button>
       </div>
       <div class="sigbox">
@@ -95,9 +98,10 @@
 
     <label class="chk">
       <input type="checkbox" id="acepta">
-      <span>Confirmo que fui atendido/a de manera remota/presencial en la fecha indicada y que los datos son correctos.</span>
+      <span>Confirmo que fui atendido/a de manera remota/presencial en la fecha indicada y que los datos son correctos. <span class="req">*</span></span>
     </label>
 
+    <small><span class="req">*</span> Dato obligatorio</small>
     <p class="err" id="err" role="alert"></p>
     <button class="primary" id="enviar" type="submit">Firmar y enviar</button>
     <small>Tus datos son confidenciales y los usa únicamente el consultorio para el registro de atención y la facturación a tu obra social.</small>
@@ -139,15 +143,20 @@ cv.addEventListener("pointermove",e=>{if(!dibujando)return;const p=pos(e);ctx.be
 $("borrar").onclick=ajustar;
 window.addEventListener("load",ajustar);
 
+$("os").addEventListener("change",()=>{
+  const o = $("os").value==="OSPE";
+  cv.classList.toggle("alto",o);
+  $("hint").textContent = o ? "Firmá y escribí tu aclaración y DNI, a mano, acá" : "Firmá acá con el dedo";
+  ajustar();
+});
+
 // ---- Envío ----
 $("f").addEventListener("submit", async e=>{
   e.preventDefault();
   const err = $("err"); err.textContent="";
   const os=$("os").value, nombre=$("nombre").value.trim(), afiliado=$("afiliado").value.trim(), plan=$("plan").value.trim();
   const dni=$("dni").value.replace(/\D/g,""), edadTxt=$("edad").value.replace(/\D/g,""), fecha=$("fecha").value, motivo=$("motivo").value.trim();
-  if(!os) return err.textContent="Elegí tu obra social.";
   if(nombre.length<3) return err.textContent="Ingresá tu apellido y nombre.";
-  if(!afiliado) return err.textContent="Ingresá tu número de afiliado o socio.";
   if(!/^\d{6,9}$/.test(dni)) return err.textContent="El DNI debe tener entre 6 y 9 números.";
   if(edadTxt && (+edadTxt<0 || +edadTxt>120)) return err.textContent="Revisá la edad.";
   if(!fecha) return err.textContent="Indicá la fecha de atención.";
@@ -156,7 +165,7 @@ $("f").addEventListener("submit", async e=>{
 
   const btn=$("enviar"); btn.disabled=true; btn.textContent="Enviando…";
   const { error } = await db.from("constancias").insert({
-    obra_social:os, apellido_nombre:nombre, nro_afiliado:afiliado, plan:plan||null,
+    obra_social:os||null, apellido_nombre:nombre, nro_afiliado:afiliado||null, plan:plan||null,
     dni, edad:edadTxt?+edadTxt:null, fecha_atencion:fecha, motivo:motivo||null,
     firma:cv.toDataURL("image/png"), acepta:true
   });
