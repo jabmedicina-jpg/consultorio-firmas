@@ -82,7 +82,7 @@
   @page rec{size:A4 landscape;margin:0}
   .sheet.rec{page:rec;width:297mm;height:209.4mm;min-height:0;padding:0;display:flex;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .rc{position:relative;width:148.5mm;height:209.4mm;overflow:hidden;font:8.5pt Arial,Helvetica,sans-serif;color:#0b4f52;background:#fff;box-sizing:border-box;padding:0 11mm}
-  .rc:first-child{border-right:.2mm dashed #9bbab8}
+  .rc:first-child:not(:only-child){border-right:.2mm dashed #9bbab8}
   .rc-w1{position:absolute;right:0;top:0;width:148.5mm;height:20mm}
   .rc-w2{position:absolute;left:0;bottom:0;width:148.5mm;height:14mm;transform:rotate(180deg)}
   .rc-mark{position:absolute;left:34mm;top:78mm;width:80mm;opacity:.07}
@@ -462,7 +462,7 @@ function generar(){
   for(let p=0;p<hojas;p++){
     const slice = rows.slice(p*cfg.rows,(p+1)*cfg.rows);
     const x = {periodo, hoja:p+1, hojas, total:slice.reduce((s,r)=>s+(+r.importe||0),0)};
-    if(cfg.recetas){ const d = document.createElement("div"); d.className = "sheet rec"; d.innerHTML = recetaHTML(slice[0],perfil)+recetaHTML(slice[1],perfil); cont.appendChild(d); continue; }
+    if(cfg.recetas){ const d = document.createElement("div"); d.className = "sheet rec"; d.innerHTML = slice.length ? slice.map(r=>recetaHTML(r,perfil)).join("") : recetaHTML(null,perfil); cont.appendChild(d); continue; }
     const div = document.createElement("div");
     div.className = "sheet " + (cfg.port ? "port" : "land") + (cfg.cls ? " " + cfg.cls : "");
     div.innerHTML = (cfg.titleHTML ? cfg.titleHTML(perfil) : `<h4>${esc(cfg.title)}</h4>`) + (cfg.headHTML ? cfg.headHTML(perfil,x) : headHTML(cfg,perfil,x)) + (cfg.cards ? cardsHTML(cfg,slice) : tablaHTML(cfg,slice,p*cfg.rows)) + footHTML(cfg,x);
