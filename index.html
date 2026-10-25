@@ -155,6 +155,14 @@ $("os").addEventListener("change",()=>{
   ajustar();
 });
 
+// Reduce el tamaño de la imagen (máx. 800 px de ancho) para que siempre entre en la base
+function firmaPNG(){
+  const w = Math.min(800, cv.width), h = Math.round(cv.height * w / cv.width);
+  const t = document.createElement("canvas"); t.width = w; t.height = h;
+  const c = t.getContext("2d"); c.fillStyle = "#fff"; c.fillRect(0,0,w,h); c.drawImage(cv,0,0,w,h);
+  return t.toDataURL("image/png");
+}
+
 // ---- Envío ----
 $("f").addEventListener("submit", async e=>{
   e.preventDefault();
@@ -172,9 +180,9 @@ $("f").addEventListener("submit", async e=>{
   const { error } = await db.from("constancias").insert({
     obra_social:os||null, apellido_nombre:nombre, nro_afiliado:afiliado||null, plan:plan||null,
     dni, edad:edadTxt?+edadTxt:null, fecha_atencion:fecha, motivo:motivo||null,
-    firma:cv.toDataURL("image/png"), acepta:true
+    firma:firmaPNG(), acepta:true
   });
-  if(error){ btn.disabled=false; btn.textContent="Firmar y enviar"; err.textContent="No se pudo enviar. Revisá tu conexión e intentá de nuevo."; console.error(error); return; }
+  if(error){ btn.disabled=false; btn.textContent="Firmar y enviar"; err.textContent="No se pudo enviar. Revisá tu conexión e intentá de nuevo." + (error.message ? " (" + error.message + ")" : ""); console.error(error); return; }
   $("f").hidden=true; $("done").hidden=false;
 });
 </script>
