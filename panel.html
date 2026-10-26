@@ -148,6 +148,8 @@
   .sheet.ovl{position:relative;padding:0;overflow:hidden;background:#fff}
   .ovl-in{position:absolute;left:0;top:0;transform-origin:0 0}
   .ovl-in .t{position:absolute;transform:translateY(-50%);font:9.5pt Arial,Helvetica,sans-serif;white-space:nowrap;overflow:hidden;color:#000}
+  .ev-sig{position:absolute;display:flex;align-items:flex-end;justify-content:center}
+  .ev-sig img{max-width:100%;max-height:100%;object-fit:contain}
   .ovl-in .g{position:absolute;border:.2mm dashed #888;pointer-events:none}
   .ovl-in .t img{display:block;max-height:7mm;max-width:100%}
   @page land{size:A4 landscape;margin:6mm}
@@ -213,6 +215,7 @@
     </section>
 
     <!-- PLANILLA MENSUAL -->
+    <div id="hojasEv"></div>
     <section id="t-plan" hidden>
       <div class="card noprint" style="margin-bottom:12px">
         <div class="bar" style="margin-bottom:6px">
@@ -228,6 +231,13 @@
           <label class="cnt">Mover ↓ (mm) <input id="ovdy" type="number" step="0.5" value="0" style="width:76px"></label>
           <label class="cnt">Escala (%) <input id="ovs" type="number" step="0.5" value="100" style="width:76px"></label>
           <label class="cnt">Papel <select id="ovp"><option value="">Según la planilla</option><option value="a4">A4</option><option value="of">Oficio</option></select></label>
+        </div>
+        <div class="bar" style="margin:8px 0 6px">
+          <button id="evb">Firmas en autorización Evweb (1 por hoja)</button>
+          <button id="evTest" class="sec">Prueba autorización Evweb</button>
+          <label class="cnt">Mover → (mm) <input id="evdx" type="number" step="0.5" value="0" style="width:76px"></label>
+          <label class="cnt">Mover ↓ (mm) <input id="evdy" type="number" step="0.5" value="0" style="width:76px"></label>
+          <label class="cnt">Escala (%) <input id="evs" type="number" step="0.5" value="100" style="width:76px"></label>
         </div>
         <p class="cnt" id="pinfo">Elegí obra social y mes. Si tenés el papel original del colegio médico, usá “Imprimir sobre papel original” (solo datos). La planilla completa trae líneas y título: usala solo sobre papel en blanco.</p>
         <p class="aviso" id="paviso" hidden></p>
@@ -463,6 +473,7 @@ function recetaHTML(r,P){
   </div>`;
 }
 function generar(){
+  $("hojasEv").innerHTML = "";
   const os = $("pos").value, mes = $("pmes").value;
   const cont = $("hojas"); cont.innerHTML = "";
   if(!os || !mes){ $("pinfo").textContent = "Elegí obra social y mes."; return; }
@@ -553,6 +564,7 @@ const ovKey = os => "ov_" + os;
 function ovLeer(os){ try{ const j = JSON.parse(localStorage.getItem(ovKey(os))||"null"); if(j){ $("ovdx").value=j.dx; $("ovdy").value=j.dy; $("ovs").value=j.s; $("ovp").value=j.p||""; } }catch(e){} }
 function ovGuardar(os){ try{ localStorage.setItem(ovKey(os), JSON.stringify({dx:$("ovdx").value,dy:$("ovdy").value,s:$("ovs").value,p:$("ovp").value})); }catch(e){} }
 function overlay(test){
+  $("hojasEv").innerHTML = "";
   const os = $("pos").value, mes = $("pmes").value, cont = $("hojas");
   const cfg = OVL[os];
   if(!cfg){ $("pinfo").textContent = os ? "Esta obra social no tiene papel preimpreso: usá “Imprimir planilla completa”." : "Elegí la obra social."; return false; }
@@ -636,6 +648,8 @@ function pintar(){
     const ta = document.createElement("td");
     const b = document.createElement("button"); b.className = "sec mini"; b.textContent = pendiente(r) ? "Completar" : "Editar";
     b.onclick = () => abrirModal(r); ta.appendChild(b);
+    const be = document.createElement("button"); be.className = "sec mini"; be.textContent = "Firma en autorización"; be.style.marginLeft = "6px";
+    be.onclick = () => evweb([r],false); ta.appendChild(be);
     if(pendiente(r)){ const s = document.createElement("span"); s.className = "pill"; s.textContent = "Pendiente"; s.style.marginLeft = "6px"; ta.appendChild(s); }
     tr.appendChild(ta); tb.appendChild(tr);
   }
@@ -684,6 +698,40 @@ $("mguardar").onclick = async () => {
   Object.assign(editando, obj); $("modal").hidden = true; pintar();
 };
 
+
+/* ---------- Firma del paciente sobre la autorización de Evweb (A4 vertical) ---------- */
+const EVW = { img:[1416,2000], sig:[790,1560,460,112], line:[785,1675,465] };   // px de la foto de la hoja
+function evLeer(){ try{ const j = JSON.parse(localStorage.getItem("ov_Evweb")||"null"); if(j){ $("evdx").value=j.dx; $("evdy").value=j.dy; $("evs").value=j.s; } }catch(e){} }
+function evGuardar(){ try{ localStorage.setItem("ov_Evweb", JSON.stringify({dx:$("evdx").value,dy:$("evdy").value,s:$("evs").value})); }catch(e){} }
+function evweb(recs, test){
+  const cont = $("hojasEv"); $("hojas").innerHTML = "";
+  evGuardar();
+  const dx = +$("evdx").value||0, dy = +$("evdy").value||0, sc = (+$("evs").value||100)/100;
+  const K = 210/EVW.img[0], mm = v => (v*K).toFixed(2)+"mm";
+  let st = $("pgs"); if(!st){ st = document.createElement("style"); st.id = "pgs"; document.head.appendChild(st); }
+  st.textContent = "@media print{@page{size:210mm 297mm;margin:0}.sheet.ovl{width:210mm!important;height:297mm!important}}";
+  cont.innerHTML = "";
+  const lista = (test && !recs.length) ? [null] : recs;
+  for(const r of lista){
+    let h = `<div class="ev-sig" style="left:${mm(EVW.sig[0])};top:${mm(EVW.sig[1])};width:${mm(EVW.sig[2])};height:${mm(EVW.sig[3])}">${r?`<img src="${esc(r.firma)}" alt="">`:""}</div>`;
+    if(test) h += `<div class="g" style="left:${mm(EVW.sig[0])};top:${mm(EVW.sig[1])};width:${mm(EVW.sig[2])};height:${mm(EVW.sig[3])}"></div><div class="g" style="left:${mm(EVW.line[0])};top:${mm(EVW.line[1])};width:${mm(EVW.line[2])};height:0"></div>`;
+    const div = document.createElement("div"); div.className = "sheet ovl"; div.style.width = "210mm"; div.style.height = "297mm";
+    div.innerHTML = `<div class="ovl-in" style="width:210mm;height:297mm;transform:translate(${dx}mm,${dy}mm) scale(${sc})">${h}</div>`;
+    cont.appendChild(div);
+  }
+  setTimeout(()=>window.print(),200);
+}
+window.addEventListener("afterprint", () => { $("hojasEv").innerHTML = ""; });
+$("evb").onclick = () => {
+  const os = $("pos").value, mes = $("pmes").value;
+  if(!mes){ $("pinfo").textContent = "Elegí el mes (y la obra social, o dejá sin elegir para todas)."; return; }
+  const rs = filas.filter(r=>(!os||r.obra_social===os) && r.fecha_atencion.startsWith(mes)).sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
+  if(!rs.length){ $("pinfo").textContent = "No hay registros en ese mes."; return; }
+  $("pinfo").textContent = rs.length + " hoja(s): una firma por hoja, en orden de fecha. Imprimí sobre las autorizaciones, en el mismo orden.";
+  evweb(rs,false);
+};
+$("evTest").onclick = () => evweb([],true);
+evLeer();
 
 /* ---------- Enviar link al paciente ---------- */
 $("envOs").innerHTML += OBRAS.map(o => `<option>${esc(o)}</option>`).join("");
