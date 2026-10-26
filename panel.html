@@ -204,6 +204,7 @@
         <select id="fos" aria-label="Obra social"><option value="">Todas las obras sociales</option></select>
         <input id="fmes" type="month" aria-label="Mes">
         <button id="csv">Descargar Excel (CSV)</button>
+        <label class="cnt">Firma en hoja: <select id="evmodoR"></select></label>
       </div>
       <p class="cnt" id="cnt"></p>
       <div class="tw">
@@ -233,11 +234,13 @@
           <label class="cnt">Papel <select id="ovp"><option value="">Según la planilla</option><option value="a4">A4</option><option value="of">Oficio</option></select></label>
         </div>
         <div class="bar" style="margin:8px 0 6px">
-          <button id="evb">Firmas en autorización Evweb (1 por hoja)</button>
-          <button id="evTest" class="sec">Prueba autorización Evweb</button>
+          <label class="cnt">Hoja <select id="evmodo"></select></label>
+          <button id="evb">Imprimir firmas en esa hoja (1 por hoja)</button>
+          <button id="evTest" class="sec">Prueba con guías</button>
           <label class="cnt">Mover → (mm) <input id="evdx" type="number" step="0.5" value="0" style="width:76px"></label>
           <label class="cnt">Mover ↓ (mm) <input id="evdy" type="number" step="0.5" value="0" style="width:76px"></label>
           <label class="cnt">Escala (%) <input id="evs" type="number" step="0.5" value="100" style="width:76px"></label>
+          <small id="evnota" style="color:var(--mut)"></small>
         </div>
         <p class="cnt" id="pinfo">Elegí obra social y mes. Si tenés el papel original del colegio médico, usá “Imprimir sobre papel original” (solo datos). La planilla completa trae líneas y título: usala solo sobre papel en blanco.</p>
         <p class="aviso" id="paviso" hidden></p>
@@ -648,7 +651,7 @@ function pintar(){
     const ta = document.createElement("td");
     const b = document.createElement("button"); b.className = "sec mini"; b.textContent = pendiente(r) ? "Completar" : "Editar";
     b.onclick = () => abrirModal(r); ta.appendChild(b);
-    const be = document.createElement("button"); be.className = "sec mini"; be.textContent = "Firma en autorización"; be.style.marginLeft = "6px";
+    const be = document.createElement("button"); be.className = "sec mini"; be.textContent = "Imprimir firma en hoja"; be.style.marginLeft = "6px";
     be.onclick = () => evweb([r],false); ta.appendChild(be);
     if(pendiente(r)){ const s = document.createElement("span"); s.className = "pill"; s.textContent = "Pendiente"; s.style.marginLeft = "6px"; ta.appendChild(s); }
     tr.appendChild(ta); tb.appendChild(tr);
@@ -699,39 +702,58 @@ $("mguardar").onclick = async () => {
 };
 
 
-/* ---------- Firma del paciente sobre la autorización de Evweb (A4 vertical) ---------- */
-const EVW = { img:[1416,2000], sig:[790,1560,460,112], line:[785,1675,465] };   // px de la foto de la hoja
-function evLeer(){ try{ const j = JSON.parse(localStorage.getItem("ov_Evweb")||"null"); if(j){ $("evdx").value=j.dx; $("evdy").value=j.dy; $("evs").value=j.s; } }catch(e){} }
-function evGuardar(){ try{ localStorage.setItem("ov_Evweb", JSON.stringify({dx:$("evdx").value,dy:$("evdy").value,s:$("evs").value})); }catch(e){} }
-function evweb(recs, test){
-  const cont = $("hojasEv"); $("hojas").innerHTML = "";
-  evGuardar();
-  const dx = +$("evdx").value||0, dy = +$("evdy").value||0, sc = (+$("evs").value||100)/100;
-  const K = 210/EVW.img[0], mm = v => (v*K).toFixed(2)+"mm";
+/* ---------- Firma del paciente sobre hojas impresas (A4 vertical) ---------- */
+/* Posiciones medidas en px sobre la foto de cada hoja */
+const FH = {
+  evweb:{ nombre:"Autorización Evweb", img:[1416,2000], sig:[790,1560,460,112], line:[785,1675,465] },
+  swiss:{ nombre:"Ticket Swiss Medical", img:[1024,1450], sig:[310,1030,400,135], line:null }
+};
+const CAL = {};
+function calLeer(){ for(const k in FH){ try{ CAL[k] = JSON.parse(localStorage.getItem("ov_fh_"+k)||"null") || {dx:0,dy:0,s:100}; }catch(e){ CAL[k] = {dx:0,dy:0,s:100}; } } }
+function calGuardar(){ try{ for(const k in CAL) localStorage.setItem("ov_fh_"+k, JSON.stringify(CAL[k])); }catch(e){} }
+let fhModo = "evweb";
+try{ fhModo = localStorage.getItem("fh_modo") || "evweb"; }catch(e){}
+function fhPintarInputs(){
+  const m = FH[fhModo] ? fhModo : null;
+  ["evdx","evdy","evs"].forEach(id => $(id).disabled = !m);
+  if(m){ $("evdx").value = CAL[m].dx; $("evdy").value = CAL[m].dy; $("evs").value = CAL[m].s; }
+  $("evnota").textContent = m ? "" : "Con “Ambas” se usa la calibración guardada de cada hoja. Para ajustar una, elegila sola.";
+}
+function fhModo_(v){ fhModo = v; try{ localStorage.setItem("fh_modo", v); }catch(e){} $("evmodo").value = v; $("evmodoR").value = v; fhPintarInputs(); }
+["evmodo","evmodoR"].forEach(id => { $(id).innerHTML = `<option value="evweb">Autorización Evweb</option><option value="swiss">Ticket Swiss Medical</option><option value="ambas">Ambas hojas (misma firma)</option>`; $(id).onchange = e => fhModo_(e.target.value); });
+["evdx","evdy","evs"].forEach(id => $(id).addEventListener("input", () => { if(!CAL[fhModo]) return; CAL[fhModo] = {dx:$("evdx").value, dy:$("evdy").value, s:$("evs").value}; calGuardar(); }));
+calLeer(); fhModo_(FH[fhModo]||fhModo==="ambas" ? fhModo : "evweb");
+
+function fhImprimir(recs, test){
+  const cont = $("hojasEv"); $("hojas").innerHTML = ""; cont.innerHTML = "";
   let st = $("pgs"); if(!st){ st = document.createElement("style"); st.id = "pgs"; document.head.appendChild(st); }
   st.textContent = "@media print{@page{size:210mm 297mm;margin:0}.sheet.ovl{width:210mm!important;height:297mm!important}}";
-  cont.innerHTML = "";
+  const modelos = fhModo === "ambas" ? ["evweb","swiss"] : [fhModo];
   const lista = (test && !recs.length) ? [null] : recs;
-  for(const r of lista){
-    let h = `<div class="ev-sig" style="left:${mm(EVW.sig[0])};top:${mm(EVW.sig[1])};width:${mm(EVW.sig[2])};height:${mm(EVW.sig[3])}">${r?`<img src="${esc(r.firma)}" alt="">`:""}</div>`;
-    if(test) h += `<div class="g" style="left:${mm(EVW.sig[0])};top:${mm(EVW.sig[1])};width:${mm(EVW.sig[2])};height:${mm(EVW.sig[3])}"></div><div class="g" style="left:${mm(EVW.line[0])};top:${mm(EVW.line[1])};width:${mm(EVW.line[2])};height:0"></div>`;
+  for(const r of lista) for(const k of modelos){
+    const F = FH[k], c = CAL[k], K = 210/F.img[0], mm = v => (v*K).toFixed(2)+"mm";
+    const dx = +c.dx||0, dy = +c.dy||0, sc = (+c.s||100)/100;
+    let h = `<div class="ev-sig" style="left:${mm(F.sig[0])};top:${mm(F.sig[1])};width:${mm(F.sig[2])};height:${mm(F.sig[3])}">${r?`<img src="${esc(r.firma)}" alt="">`:""}</div>`;
+    if(test){ h += `<div class="g" style="left:${mm(F.sig[0])};top:${mm(F.sig[1])};width:${mm(F.sig[2])};height:${mm(F.sig[3])}"></div>`;
+      if(F.line) h += `<div class="g" style="left:${mm(F.line[0])};top:${mm(F.line[1])};width:${mm(F.line[2])};height:0"></div>`; }
     const div = document.createElement("div"); div.className = "sheet ovl"; div.style.width = "210mm"; div.style.height = "297mm";
     div.innerHTML = `<div class="ovl-in" style="width:210mm;height:297mm;transform:translate(${dx}mm,${dy}mm) scale(${sc})">${h}</div>`;
     cont.appendChild(div);
   }
   setTimeout(()=>window.print(),200);
 }
+const evweb = fhImprimir;
 window.addEventListener("afterprint", () => { $("hojasEv").innerHTML = ""; });
 $("evb").onclick = () => {
   const os = $("pos").value, mes = $("pmes").value;
   if(!mes){ $("pinfo").textContent = "Elegí el mes (y la obra social, o dejá sin elegir para todas)."; return; }
   const rs = filas.filter(r=>(!os||r.obra_social===os) && r.fecha_atencion.startsWith(mes)).sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
   if(!rs.length){ $("pinfo").textContent = "No hay registros en ese mes."; return; }
-  $("pinfo").textContent = rs.length + " hoja(s): una firma por hoja, en orden de fecha. Imprimí sobre las autorizaciones, en el mismo orden.";
-  evweb(rs,false);
+  const n = rs.length * (fhModo==="ambas" ? 2 : 1);
+  $("pinfo").textContent = n + " hoja(s), en orden de fecha" + (fhModo==="ambas" ? " (por paciente: autorización y después ticket)" : "") + ". Poné las hojas en la bandeja en ese mismo orden.";
+  fhImprimir(rs,false);
 };
-$("evTest").onclick = () => evweb([],true);
-evLeer();
+$("evTest").onclick = () => fhImprimir([],true);
 
 /* ---------- Enviar link al paciente ---------- */
 $("envOs").innerHTML += OBRAS.map(o => `<option>${esc(o)}</option>`).join("");
