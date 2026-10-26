@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0b6e6e">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Consultorio">
+<meta name="apple-mobile-web-app-title" content="Dr Benitez">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" href="/icon-192.png">
@@ -178,6 +178,16 @@
   </section>
 
   <div id="app" hidden>
+    <section class="card noprint" id="envio" style="margin-bottom:12px">
+      <div style="font-weight:700;margin-bottom:8px">Enviar link al paciente</div>
+      <div class="bar">
+        <select id="envOs" aria-label="Obra social del paciente"><option value="">Obra social (opcional)</option></select>
+        <button id="envWa">Enviar por WhatsApp</button>
+        <button class="sec" id="envShare">Compartir…</button>
+        <button class="sec" id="envCopy">Copiar link</button>
+      </div>
+      <small id="envMsg" style="color:var(--mut)"></small>
+    </section>
     <div class="tabs noprint">
       <button data-tab="reg" class="on">Registros</button>
       <button data-tab="plan">Planilla mensual</button>
@@ -672,6 +682,22 @@ $("mguardar").onclick = async () => {
   const { error } = await db.from("constancias").update(obj).eq("id", editando.id);
   if(error){ $("merr").textContent = "No se pudo guardar: " + error.message; return; }
   Object.assign(editando, obj); $("modal").hidden = true; pintar();
+};
+
+
+/* ---------- Enviar link al paciente ---------- */
+$("envOs").innerHTML += OBRAS.map(o => `<option>${esc(o)}</option>`).join("");
+function envLink(){ const os = $("envOs").value; return location.origin + "/index.html" + (os ? "?os=" + encodeURIComponent(os) : ""); }
+function envTexto(){ return "Hola, soy el Dr. Jorge Benitez. Para registrar tu atención, completá y firmá tu constancia desde este link (te lleva un minuto): " + envLink(); }
+function envAviso(t){ $("envMsg").textContent = t; setTimeout(()=>{ $("envMsg").textContent = ""; }, 4000); }
+$("envWa").onclick = () => { window.open("https://wa.me/?text=" + encodeURIComponent(envTexto()), "_blank"); };
+$("envShare").onclick = async () => {
+  if(navigator.share){ try{ await navigator.share({ title:"Constancia de atención", text:envTexto() }); }catch(e){} }
+  else { $("envCopy").click(); }
+};
+$("envCopy").onclick = async () => {
+  try{ await navigator.clipboard.writeText(envLink()); envAviso("Link copiado."); }
+  catch(e){ prompt("Copiá el link:", envLink()); }
 };
 
 /* ---------- Mis datos ---------- */

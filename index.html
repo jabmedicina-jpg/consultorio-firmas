@@ -129,6 +129,9 @@ $("fecha").value = new Date(Date.now() - new Date().getTimezoneOffset()*60000).t
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } });
 
+// Si el link trae ?os=NOMBRE, deja la obra social preseleccionada
+try{ const o = new URLSearchParams(location.search).get("os"); if(o && [...$("os").options].some(x=>x.value===o||x.text===o)) $("os").value = o; }catch(e){}
+
 // ---- Firma ----
 const cv = $("pad"), ctx = cv.getContext("2d");
 let dibujando = false, hayFirma = false, last = null;
@@ -154,6 +157,8 @@ $("os").addEventListener("change",()=>{
   $("hint").textContent = o ? "Escribí a mano, uno debajo del otro: firma, aclaración y DNI" : "Firmá acá con el dedo";
   ajustar();
 });
+
+if($("os").value) $("os").dispatchEvent(new Event("change"));
 
 // Reduce el tamaño de la imagen (máx. 800 px de ancho) para que siempre entre en la base
 function firmaPNG(){
