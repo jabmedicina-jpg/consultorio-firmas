@@ -87,8 +87,7 @@
   .sheet.ospe .pl tbody tr:nth-child(even) td{background:#f3faf9}
   .sheet.ospe .foot div{border-top-color:#1d6f7a;color:#1d6f7a}
   .ob-pie{display:flex;justify-content:space-between;gap:6mm;margin-top:4mm;padding-top:1.5mm;border-top:1.5px solid #2a9d8f;font-size:7.5pt;color:#555}
-  @page rec{size:A4 landscape;margin:0}
-  .sheet.rec{page:rec;width:297mm;height:209.4mm;min-height:0;padding:0;display:flex;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sheet.rec{width:297mm;height:209.4mm;min-height:0;padding:0;display:flex;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .rc{position:relative;width:148.5mm;height:209.4mm;overflow:hidden;font:8.5pt Arial,Helvetica,sans-serif;color:#0b4f52;background:#fff;box-sizing:border-box;padding:0 11mm}
   .rc:first-child:not(:only-child){border-right:.2mm dashed #9bbab8}
   .rc-w1{position:absolute;right:0;top:0;width:148.5mm;height:20mm}
@@ -478,8 +477,10 @@ function recetaHTML(r,P){
     <div class="rc-foot"><div><i></i>${v(wa)}</div><div><i></i>${v(P.email)}</div><div><i></i>${v([P.domicilio,P.localidad].filter(Boolean).join(", "))}</div><div><i></i>Tel. 0297 455-9987</div></div>
   </div>`;
 }
+function pagStyle(css){ let st = $("pgs"); if(!st){ st = document.createElement("style"); st.id = "pgs"; document.head.appendChild(st); } st.textContent = css; }
 function generar(){
   $("hojasEv").innerHTML = "";
+  pagStyle(OSCFG[$("pos").value] && OSCFG[$("pos").value].recetas ? "@page{size:297mm 210mm;margin:0}" : "");
   const os = $("pos").value, mes = $("pmes").value;
   const cont = $("hojas"); cont.innerHTML = "";
   if(!os || !mes){ $("pinfo").textContent = "Elegí obra social y mes."; return; }
@@ -808,7 +809,7 @@ $("fos").innerHTML += OBRAS.map(o => `<option>${esc(o)}</option>`).join("");
 $("pos").innerHTML = `<option value="">Obra social…</option>` + OBRAS.map(o => `<option>${esc(o)}</option>`).join("");
 $("pmes").value = mesActual();
 $("generar").onclick = generar;
-$("imprimir").onclick = () => { if(!$("hojas").children.length) generar(); window.print(); };
+$("imprimir").onclick = () => { generar(); setTimeout(()=>window.print(),150); };
 
 async function estado(){
   const { data:{ session } } = await db.auth.getSession();
