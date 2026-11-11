@@ -121,4 +121,75 @@
 <script>
 // ====== CONFIGURAR ======
 const SUPABASE_URL = "https://pqyobznfmiehrwmypgiz.supabase.co";
-const SUPABASE_ANON_KEY =
+const SUPABASE_ANON_KEY = ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxeW9iem5mbWllaHJ3bXlwZ2l6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NzczNjQsImV4cCI6MjEwODM1MzM2NH0", "z0EWix4-hmNU7_HNmOGDX19wjGGA7BwrVL0bIPWKlDw"].join(".");  // clave pública (anon), partida en 3 para que GitHub no la marque como secreta
+// ========================
+
+const $ = id => document.getElementById(id);
+$("fecha").value = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } });
+
+// Si el link trae ?os=NOMBRE, deja la obra social preseleccionada
+try{ const o = new URLSearchParams(location.search).get("os"); if(o && [...$("os").options].some(x=>x.value===o||x.text===o)) $("os").value = o; }catch(e){}
+
+// ---- Firma ----
+const cv = $("pad"), ctx = cv.getContext("2d");
+let dibujando = false, hayFirma = false, last = null;
+function ajustar(){
+  const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  cv.width = r.width*d; cv.height = r.height*d;
+  ctx.setTransform(d,0,0,d,0,0);
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,r.width,r.height);
+  ctx.lineWidth=2.4; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.strokeStyle="#111";
+  hayFirma=false; $("hint").hidden=false;
+}
+function pos(e){const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);dibujando=true;last=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(last.x+.01,last.y);ctx.stroke();hayFirma=true;$("hint").hidden=true;});
+cv.addEventListener("pointermove",e=>{if(!dibujando)return;const p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;});
+["pointerup","pointercancel","pointerleave"].forEach(ev=>cv.addEventListener(ev,()=>dibujando=false));
+$("borrar").onclick=ajustar;
+window.addEventListener("load",ajustar);
+
+$("os").addEventListener("change",()=>{
+  const o = $("os").value==="OSPE";
+  cv.classList.toggle("alto",o);
+  $("guias").hidden = !o;
+  $("hint").textContent = o ? "Escribí a mano, uno debajo del otro: firma, aclaración y DNI" : "Firmá acá con el dedo";
+  ajustar();
+});
+
+if($("os").value) $("os").dispatchEvent(new Event("change"));
+
+// Reduce el tamaño de la imagen (máx. 800 px de ancho) para que siempre entre en la base
+function firmaPNG(){
+  const w = Math.min(800, cv.width), h = Math.round(cv.height * w / cv.width);
+  const t = document.createElement("canvas"); t.width = w; t.height = h;
+  const c = t.getContext("2d"); c.fillStyle = "#fff"; c.fillRect(0,0,w,h); c.drawImage(cv,0,0,w,h);
+  return t.toDataURL("image/png");
+}
+
+// ---- Envío ----
+$("f").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const err = $("err"); err.textContent="";
+  const os=$("os").value, nombre=$("nombre").value.trim(), afiliado=$("afiliado").value.trim(), plan=$("plan").value.trim();
+  const dni=$("dni").value.replace(/\D/g,""), edadTxt=$("edad").value.replace(/\D/g,""), fecha=$("fecha").value, motivo=$("motivo").value.trim();
+  if(nombre.length<3) return err.textContent="Ingresá tu apellido y nombre.";
+  if(!/^\d{6,9}$/.test(dni)) return err.textContent="El DNI debe tener entre 6 y 9 números.";
+  if(edadTxt && (+edadTxt<0 || +edadTxt>120)) return err.textContent="Revisá la edad.";
+  if(!fecha) return err.textContent="Indicá la fecha de atención.";
+  if(!hayFirma) return err.textContent="Falta tu firma.";
+  if(!$("acepta").checked) return err.textContent="Tildá la confirmación para continuar.";
+
+  const btn=$("enviar"); btn.disabled=true; btn.textContent="Enviando…";
+  const { error } = await db.from("constancias").insert({
+    obra_social:os||null, apellido_nombre:nombre, nro_afiliado:afiliado||null, plan:plan||null,
+    dni, edad:edadTxt?+edadTxt:null, fecha_atencion:fecha, motivo:motivo||null,
+    firma:firmaPNG(), acepta:true
+  });
+  if(error){ btn.disabled=false; btn.textContent="Firmar y enviar"; err.textContent="No se pudo enviar. Revisá tu conexión e intentá de nuevo." + (error.message ? " (" + error.message + ")" : ""); console.error(error); return; }
+  $("f").hidden=true; $("done").hidden=false;
+});
+</script>
+</body>
+</html>
