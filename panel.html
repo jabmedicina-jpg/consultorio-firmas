@@ -738,10 +738,10 @@ function fhPintarInputs(){
   $("evnota").textContent = m ? "" : "Con este modo se usa la calibración guardada de cada hoja. Para ajustar una, elegila sola.";
 }
 function fhModo_(v){ fhModo = v; try{ localStorage.setItem("fh_modo", v); }catch(e){} $("evmodo").value = v; $("evmodoR").value = v; fhPintarInputs(); }
-["evmodo","evmodoR"].forEach(id => { $(id).innerHTML = `<option value="auto">Automático según obra social</option><option value="evweb">Autorización Evweb</option><option value="swiss">Ticket Swiss Medical</option><option value="medife">Ticket Medifé</option><option value="ambas">Evweb + ticket Swiss (misma firma)</option>`; $(id).onchange = e => fhModo_(e.target.value); });
+["evmodo","evmodoR"].forEach(id => { $(id).innerHTML = `<option value="auto">Automático según obra social</option><option value="evweb">Autorización Evweb</option><option value="swiss">Ticket Swiss Medical</option><option value="medife">Ticket Medifé</option>`; $(id).onchange = e => fhModo_(e.target.value); });
 ["evdx","evdy","evs"].forEach(id => $(id).addEventListener("input", () => { if(!CAL[fhModo]) return; CAL[fhModo] = {dx:$("evdx").value, dy:$("evdy").value, s:$("evs").value}; calGuardar(); }));
 ["evsw","evswR"].forEach(id => { $(id).innerHTML = `<option value="ticket">Ticket Swiss</option><option value="evweb">Autorización Evweb</option>`; $(id).value = swLleva; $(id).onchange = e => { swLleva = e.target.value; try{ localStorage.setItem("fh_sw", swLleva); }catch(_){} $("evsw").value = swLleva; $("evswR").value = swLleva; }; });
-calLeer(); fhModo_(FH[fhModo]||fhModo==="ambas"||fhModo==="auto" ? fhModo : "auto");
+calLeer(); fhModo_(FH[fhModo]||fhModo==="auto" ? fhModo : "auto");
 
 function fhImprimir(recs, test){
   const cont = $("hojasEv"); $("hojas").innerHTML = ""; cont.innerHTML = "";
