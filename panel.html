@@ -716,8 +716,12 @@ $("mguardar").onclick = async () => {
 /* Posiciones medidas en px sobre la foto de cada hoja */
 const FH = {
   evweb:{ nombre:"Autorización Evweb", img:[1416,2000], sig:[790,1560,460,112], line:[785,1675,465] },
-  swiss:{ nombre:"Ticket Swiss Medical", img:[1024,1450], sig:[310,1030,400,135], line:null }
+  swiss:{ nombre:"Ticket Swiss Medical", img:[1024,1450], sig:[310,1030,400,135], line:null },
+  medife:{ nombre:"Ticket Medifé", img:[827,1170], sig:[75,598,208,55], line:[73,655,212] }
 };
+/* Modo automático: qué hojas lleva cada obra social */
+const AUTO = {"Swiss Medical":["evweb","swiss"], "Medifé":["medife"]};
+const modelosDe = (r,modo) => modo==="ambas" ? ["evweb","swiss"] : modo==="auto" ? (AUTO[r&&r.obra_social]||["evweb"]) : [modo];
 const CAL = {};
 function calLeer(){ for(const k in FH){ try{ CAL[k] = JSON.parse(localStorage.getItem("ov_fh_"+k)||"null") || {dx:0,dy:0,s:100}; }catch(e){ CAL[k] = {dx:0,dy:0,s:100}; } } }
 function calGuardar(){ try{ for(const k in CAL) localStorage.setItem("ov_fh_"+k, JSON.stringify(CAL[k])); }catch(e){} }
@@ -727,20 +731,19 @@ function fhPintarInputs(){
   const m = FH[fhModo] ? fhModo : null;
   ["evdx","evdy","evs"].forEach(id => $(id).disabled = !m);
   if(m){ $("evdx").value = CAL[m].dx; $("evdy").value = CAL[m].dy; $("evs").value = CAL[m].s; }
-  $("evnota").textContent = m ? "" : "Con “Ambas” se usa la calibración guardada de cada hoja. Para ajustar una, elegila sola.";
+  $("evnota").textContent = m ? "" : "Con este modo se usa la calibración guardada de cada hoja. Para ajustar una, elegila sola.";
 }
 function fhModo_(v){ fhModo = v; try{ localStorage.setItem("fh_modo", v); }catch(e){} $("evmodo").value = v; $("evmodoR").value = v; fhPintarInputs(); }
-["evmodo","evmodoR"].forEach(id => { $(id).innerHTML = `<option value="evweb">Autorización Evweb</option><option value="swiss">Ticket Swiss Medical</option><option value="ambas">Ambas hojas (misma firma)</option>`; $(id).onchange = e => fhModo_(e.target.value); });
+["evmodo","evmodoR"].forEach(id => { $(id).innerHTML = `<option value="auto">Automático según obra social</option><option value="evweb">Autorización Evweb</option><option value="swiss">Ticket Swiss Medical</option><option value="medife">Ticket Medifé</option><option value="ambas">Evweb + ticket Swiss (misma firma)</option>`; $(id).onchange = e => fhModo_(e.target.value); });
 ["evdx","evdy","evs"].forEach(id => $(id).addEventListener("input", () => { if(!CAL[fhModo]) return; CAL[fhModo] = {dx:$("evdx").value, dy:$("evdy").value, s:$("evs").value}; calGuardar(); }));
-calLeer(); fhModo_(FH[fhModo]||fhModo==="ambas" ? fhModo : "evweb");
+calLeer(); fhModo_(FH[fhModo]||fhModo==="ambas"||fhModo==="auto" ? fhModo : "auto");
 
 function fhImprimir(recs, test){
   const cont = $("hojasEv"); $("hojas").innerHTML = ""; cont.innerHTML = "";
   let st = $("pgs"); if(!st){ st = document.createElement("style"); st.id = "pgs"; document.head.appendChild(st); }
   st.textContent = "@media print{@page{size:210mm 297mm;margin:0}.sheet.ovl{width:210mm!important;height:297mm!important}}";
-  const modelos = fhModo === "ambas" ? ["evweb","swiss"] : [fhModo];
   const lista = (test && !recs.length) ? [null] : recs;
-  for(const r of lista) for(const k of modelos){
+  for(const r of lista) for(const k of (test && fhModo!=="ambas" && fhModo!=="auto" ? [fhModo] : modelosDe(r,fhModo))){
     const F = FH[k], c = CAL[k], K = 210/F.img[0], mm = v => (v*K).toFixed(2)+"mm";
     const dx = +c.dx||0, dy = +c.dy||0, sc = (+c.s||100)/100;
     let h = `<div class="ev-sig" style="left:${mm(F.sig[0])};top:${mm(F.sig[1])};width:${mm(F.sig[2])};height:${mm(F.sig[3])}">${r?`<img src="${esc(r.firma)}" alt="">`:""}</div>`;
@@ -759,8 +762,8 @@ $("evb").onclick = () => {
   if(!mes){ $("pinfo").textContent = "Elegí el mes (y la obra social, o dejá sin elegir para todas)."; return; }
   const rs = filas.filter(r=>(!os||r.obra_social===os) && r.fecha_atencion.startsWith(mes)).sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
   if(!rs.length){ $("pinfo").textContent = "No hay registros en ese mes."; return; }
-  const n = rs.length * (fhModo==="ambas" ? 2 : 1);
-  $("pinfo").textContent = n + " hoja(s), en orden de fecha" + (fhModo==="ambas" ? " (por paciente: autorización y después ticket)" : "") + ". Poné las hojas en la bandeja en ese mismo orden.";
+  const n = rs.reduce((t,r)=>t+modelosDe(r,fhModo).length,0);
+  $("pinfo").textContent = n + " hoja(s), en orden de fecha" + (n>rs.length ? " (cuando un paciente lleva dos hojas, salen seguidas)" : "") + ". Poné las hojas en la bandeja en ese mismo orden.";
   fhImprimir(rs,false);
 };
 $("evTest").onclick = () => fhImprimir([],true);
