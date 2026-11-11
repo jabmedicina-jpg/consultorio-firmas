@@ -206,6 +206,7 @@
         <input id="fmes" type="month" aria-label="Mes">
         <button id="csv">Descargar Excel (CSV)</button>
         <label class="cnt">Firma en hoja: <select id="evmodoR"></select></label>
+        <label class="cnt">Swiss lleva: <select id="evswR"></select></label>
       </div>
       <p class="cnt" id="cnt"></p>
       <div class="tw">
@@ -236,6 +237,7 @@
         </div>
         <div class="bar" style="margin:8px 0 6px">
           <label class="cnt">Hoja <select id="evmodo"></select></label>
+          <label class="cnt">Swiss lleva: <select id="evsw"></select></label>
           <button id="evb">Imprimir firmas en esa hoja (1 por hoja)</button>
           <button id="evTest" class="sec">Prueba con guías</button>
           <label class="cnt">Mover → (mm) <input id="evdx" type="number" step="0.5" value="0" style="width:76px"></label>
@@ -720,7 +722,9 @@ const FH = {
   medife:{ nombre:"Ticket Medifé", img:[827,1170], sig:[75,598,208,55], line:[73,655,212] }
 };
 /* Modo automático: qué hojas lleva cada obra social */
-const AUTO = {"Swiss Medical":["evweb","swiss"], "Medifé":["medife"]};
+let swLleva = "ticket";
+try{ swLleva = localStorage.getItem("fh_sw") || "ticket"; if(swLleva!=="evweb") swLleva = "ticket"; }catch(e){}
+const AUTO = { get "Swiss Medical"(){ return swLleva==="evweb" ? ["evweb"] : ["swiss"]; }, "Medifé":["medife"] };
 const modelosDe = (r,modo) => modo==="ambas" ? ["evweb","swiss"] : modo==="auto" ? (AUTO[r&&r.obra_social]||["evweb"]) : [modo];
 const CAL = {};
 function calLeer(){ for(const k in FH){ try{ CAL[k] = JSON.parse(localStorage.getItem("ov_fh_"+k)||"null") || {dx:0,dy:0,s:100}; }catch(e){ CAL[k] = {dx:0,dy:0,s:100}; } } }
@@ -736,6 +740,7 @@ function fhPintarInputs(){
 function fhModo_(v){ fhModo = v; try{ localStorage.setItem("fh_modo", v); }catch(e){} $("evmodo").value = v; $("evmodoR").value = v; fhPintarInputs(); }
 ["evmodo","evmodoR"].forEach(id => { $(id).innerHTML = `<option value="auto">Automático según obra social</option><option value="evweb">Autorización Evweb</option><option value="swiss">Ticket Swiss Medical</option><option value="medife">Ticket Medifé</option><option value="ambas">Evweb + ticket Swiss (misma firma)</option>`; $(id).onchange = e => fhModo_(e.target.value); });
 ["evdx","evdy","evs"].forEach(id => $(id).addEventListener("input", () => { if(!CAL[fhModo]) return; CAL[fhModo] = {dx:$("evdx").value, dy:$("evdy").value, s:$("evs").value}; calGuardar(); }));
+["evsw","evswR"].forEach(id => { $(id).innerHTML = `<option value="ticket">Ticket Swiss</option><option value="evweb">Autorización Evweb</option>`; $(id).value = swLleva; $(id).onchange = e => { swLleva = e.target.value; try{ localStorage.setItem("fh_sw", swLleva); }catch(_){} $("evsw").value = swLleva; $("evswR").value = swLleva; }; });
 calLeer(); fhModo_(FH[fhModo]||fhModo==="ambas"||fhModo==="auto" ? fhModo : "auto");
 
 function fhImprimir(recs, test){
