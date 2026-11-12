@@ -156,6 +156,10 @@ $("os").addEventListener("change",()=>{
   $("guias").hidden = !o;
   $("hint").textContent = o ? "Escribí a mano, uno debajo del otro: firma, aclaración y DNI" : "Firmá acá con el dedo";
   ajustar();
+  // Swiss Medical: el N° de socio empieza siempre con 800006 (ya viene cargado)
+  const af = $("afiliado"), sw = $("os").value === "Swiss Medical";
+  if(sw && !af.value.trim()) af.value = "800006";
+  else if(!sw && af.value.trim() === "800006") af.value = "";
 });
 
 if($("os").value) $("os").dispatchEvent(new Event("change"));
