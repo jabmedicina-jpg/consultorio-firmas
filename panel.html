@@ -222,7 +222,9 @@
       <div class="card noprint" style="margin-bottom:12px">
         <div class="bar" style="margin-bottom:6px">
           <select id="pos" aria-label="Obra social"></select>
-          <input id="pmes" type="month" aria-label="Mes de prestación">
+          <label class="cnt">Cierre del mes <input id="pmes" type="month" aria-label="Mes de cierre"></label>
+          <label class="cnt">Desde <input id="pdesde" type="date"></label>
+          <label class="cnt">Hasta <input id="phasta" type="date"></label>
           <button id="generar" class="sec">Ver planilla completa (papel en blanco)</button>
           <button id="imprimir" class="sec">Imprimir planilla completa</button>
         </div>
@@ -417,6 +419,26 @@ const anexo = os => ({
 });
 OSCFG["APSOT"] = anexo("APSOT"); OSCFG["FSST"] = anexo("FSST");
 
+/* ---------- Período de facturación (cierre habitual: día 26) ---------- */
+const DIA_CIERRE = 26;
+const ddmmyyyy = iso => iso.slice(8,10)+"/"+iso.slice(5,7)+"/"+iso.slice(0,4);
+function rango(){
+  const d = $("pdesde").value, h = $("phasta").value;
+  if(!d || !h) return null;
+  const [a,b] = d <= h ? [d,h] : [h,d];
+  return { d:a, h:b, mmyyyy: b.slice(5,7)+"/"+b.slice(0,4), txt: ddmmyyyy(a)+" al "+ddmmyyyy(b) };
+}
+const enRango = (r,R) => r.fecha_atencion >= R.d && r.fecha_atencion <= R.h;
+function setCierre(mes){                      // mes = "YYYY-MM": desde el 27 del mes anterior hasta el 26 de ese mes
+  if(!mes) return;
+  let [y,m] = mes.split("-").map(Number);
+  let py = y, pm = m-1; if(pm===0){ pm = 12; py--; }
+  const p2 = n => String(n).padStart(2,"0");
+  $("pdesde").value = `${py}-${p2(pm)}-${p2(DIA_CIERRE+1)}`;
+  $("phasta").value = `${y}-${p2(m)}-${p2(DIA_CIERRE)}`;
+}
+function cierreActual(){ const t = new Date(), y = t.getFullYear(), m = t.getMonth()+1; const sig = t.getDate() > DIA_CIERRE; const mm = sig ? (m===12?1:m+1) : m, yy = sig && m===12 ? y+1 : y; return `${yy}-${String(mm).padStart(2,"0")}`; }
+
 /* ---------- Armado de hojas ---------- */
 function headHTML(cfg,P,x){
   return `<div class="hgrid">`+cfg.head(P,x).map(([l,v])=>`<div class="hl"><span>${esc(l)}</span><b>${esc(v||"")}</b></div>`).join("")+`</div>`;
@@ -481,15 +503,15 @@ function pagStyle(css){ let st = $("pgs"); if(!st){ st = document.createElement(
 function generar(){
   $("hojasEv").innerHTML = "";
   pagStyle(OSCFG[$("pos").value] && OSCFG[$("pos").value].recetas ? "@page{size:297mm 210mm;margin:0}" : "");
-  const os = $("pos").value, mes = $("pmes").value;
+  const os = $("pos").value, R = rango();
   const cont = $("hojas"); cont.innerHTML = "";
-  if(!os || !mes){ $("pinfo").textContent = "Elegí obra social y mes."; return; }
+  if(!os || !R){ $("pinfo").textContent = "Elegí obra social y las fechas (desde / hasta)."; return; }
   const cfg = OSCFG[os];
-  const rows = filas.filter(r=>r.obra_social===os && r.fecha_atencion.startsWith(mes))
+  const rows = filas.filter(r=>r.obra_social===os && enRango(r,R))
                     .sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
-  const [y,m] = mes.split("-"), periodo = `${m}/${y}`;
+  const periodo = R.mmyyyy, rangoTxt = R.txt;
   const pend = rows.filter(pendiente).length;
-  $("pinfo").textContent = `${rows.length} registro(s) de ${os} en ${periodo}.`;
+  $("pinfo").textContent = `${rows.length} registro(s) de ${os} del ${rangoTxt}.`;
   const pa = $("paviso");
   const faltaPerfil = !perfil.nombre;
   pa.hidden = !(pend || faltaPerfil);
@@ -572,22 +594,22 @@ function ovLeer(os){ try{ const j = JSON.parse(localStorage.getItem(ovKey(os))||
 function ovGuardar(os){ try{ localStorage.setItem(ovKey(os), JSON.stringify({dx:$("ovdx").value,dy:$("ovdy").value,s:$("ovs").value,p:$("ovp").value})); }catch(e){} }
 function overlay(test){
   $("hojasEv").innerHTML = "";
-  const os = $("pos").value, mes = $("pmes").value, cont = $("hojas");
+  const os = $("pos").value, R = rango(), cont = $("hojas");
   const cfg = OVL[os];
   if(!cfg){ $("pinfo").textContent = os ? "Esta obra social no tiene papel preimpreso: usá “Imprimir planilla completa”." : "Elegí la obra social."; return false; }
-  if(!mes){ $("pinfo").textContent = "Elegí el mes."; return false; }
+  if(!R){ $("pinfo").textContent = "Elegí las fechas (desde / hasta)."; return false; }
   ovGuardar(os);
   const dx = +$("ovdx").value||0, dy = +$("ovdy").value||0, sc = (+$("ovs").value||100)/100;
   const pv = $("ovp").value, page = pv==="a4" ? (cfg.page[0]>cfg.page[1]?A4L:A4P) : pv==="of" ? (cfg.page[0]>cfg.page[1]?OF:[OF[1],OF[0]]) : cfg.page;
   const K = page[0]/cfg.img[0];            // mm por px de la foto
   let st = $("pgs"); if(!st){ st = document.createElement("style"); st.id = "pgs"; document.head.appendChild(st); }
   st.textContent = `@media print{@page{size:${page[0]}mm ${page[1]}mm;margin:0}.sheet.ovl{width:${page[0]}mm!important;height:${page[1]}mm!important}}`;
-  const rows = filas.filter(r=>r.obra_social===os && r.fecha_atencion.startsWith(mes))
+  const rows = filas.filter(r=>r.obra_social===os && enRango(r,R))
                     .sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
-  const [y,m] = mes.split("-"), periodo = `${m}/${y}`;
+  const periodo = R.mmyyyy, rangoTxt = R.txt;
   const hojas = Math.max(1, Math.ceil(rows.length/cfg.rows));
   cont.innerHTML = "";
-  $("pinfo").textContent = `${rows.length} registro(s) de ${os} en ${periodo}. ${test?"Hoja de prueba: las líneas punteadas son solo guías.":"Poné la planilla original en la impresora."}`;
+  $("pinfo").textContent = `${rows.length} registro(s) de ${os} del ${rangoTxt}. ${test?"Hoja de prueba: las líneas punteadas son solo guías.":"Poné la planilla original en la impresora."}`;
   const mm = v => (v*K).toFixed(2)+"mm";
   const T = (txt, x, yy, w, raw) => `<div class="t" style="left:${mm(x)};top:${mm(yy)};max-width:${mm(w)}">${raw ? txt : esc(txt)}</div>`;
   const comb = (txt, x, yy, pitch, w) => String(txt).slice(0, w ? Math.max(1, Math.floor(w/pitch)) : 99).split("").map((c,i)=>T(c, x+i*pitch, yy, pitch)).join("");
@@ -764,10 +786,10 @@ function fhImprimir(recs, test){
 const evweb = fhImprimir;
 window.addEventListener("afterprint", () => { $("hojasEv").innerHTML = ""; });
 $("evb").onclick = () => {
-  const os = $("pos").value, mes = $("pmes").value;
-  if(!mes){ $("pinfo").textContent = "Elegí el mes (y la obra social, o dejá sin elegir para todas)."; return; }
-  const rs = filas.filter(r=>(!os||r.obra_social===os) && r.fecha_atencion.startsWith(mes)).sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
-  if(!rs.length){ $("pinfo").textContent = "No hay registros en ese mes."; return; }
+  const os = $("pos").value, R = rango();
+  if(!R){ $("pinfo").textContent = "Elegí las fechas (y la obra social, o dejá sin elegir para todas)."; return; }
+  const rs = filas.filter(r=>(!os||r.obra_social===os) && enRango(r,R)).sort((a,b)=>a.fecha_atencion.localeCompare(b.fecha_atencion)||a.creado_en.localeCompare(b.creado_en));
+  if(!rs.length){ $("pinfo").textContent = "No hay registros en ese período."; return; }
   const n = rs.reduce((t,r)=>t+modelosDe(r,fhModo).length,0);
   $("pinfo").textContent = n + " hoja(s), en orden de fecha" + (n>rs.length ? " (cuando un paciente lleva dos hojas, salen seguidas)" : "") + ". Poné las hojas en la bandeja en ese mismo orden.";
   fhImprimir(rs,false);
@@ -807,7 +829,8 @@ document.querySelectorAll(".tabs [data-tab]").forEach(b => b.onclick = () => {
 });
 $("fos").innerHTML += OBRAS.map(o => `<option>${esc(o)}</option>`).join("");
 $("pos").innerHTML = `<option value="">Obra social…</option>` + OBRAS.map(o => `<option>${esc(o)}</option>`).join("");
-$("pmes").value = mesActual();
+$("pmes").value = cierreActual(); setCierre($("pmes").value);
+$("pmes").addEventListener("change", () => setCierre($("pmes").value));
 $("generar").onclick = generar;
 $("imprimir").onclick = () => { generar(); setTimeout(()=>window.print(),150); };
 
