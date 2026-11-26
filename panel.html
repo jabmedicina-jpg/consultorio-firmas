@@ -566,7 +566,7 @@ const OVL = {
   "Medifé":{ page:A4L, img:[2000,1420], rows:12, y0:521, pitch:48.8,
     hdr:[["nro_prestador",90,301,200],["nombre",306,301,570],["especialidad",892,301,240],["localidad",1372,288,480],["total",1495,1093,135]],
     bounds:[80,120,172,516,760,888,1318,1477,1623,1865],
-    cols:[["dd",126,42],["nom",178,335],["afil",522,232],["plan",766,115],["diag",894,418],["cod",1324,148],["importe",1483,135],["firma",1630,230]]
+    cols:[["ddmm",123,50,{fs:7.5}],["nom",178,335],["afil",522,232],["plan",766,115],["diag",894,418],["cod",1324,148],["importe",1483,135],["firma",1630,230]]
   },
   "Osjera":{ page:A4L, img:[2000,1411], rows:14, y0:360, pitch:46.7,
     hdr:[["cuit",372,183,400,{comb:33.2}],["nombre",776,181,415],["especialidad",1206,181,215]],
@@ -611,7 +611,7 @@ function overlay(test){
   cont.innerHTML = "";
   $("pinfo").textContent = `${rows.length} registro(s) de ${os} del ${rangoTxt}. ${test?"Hoja de prueba: las líneas punteadas son solo guías.":"Poné la planilla original en la impresora."}`;
   const mm = v => (v*K).toFixed(2)+"mm";
-  const T = (txt, x, yy, w, raw) => `<div class="t" style="left:${mm(x)};top:${mm(yy)};max-width:${mm(w)}">${raw ? txt : esc(txt)}</div>`;
+  const T = (txt, x, yy, w, raw, fs) => `<div class="t" style="left:${mm(x)};top:${mm(yy)};max-width:${mm(w)}${fs?`;font-size:${fs}pt`:""}">${raw ? txt : esc(txt)}</div>`;
   const comb = (txt, x, yy, pitch, w) => String(txt).slice(0, w ? Math.max(1, Math.floor(w/pitch)) : 99).split("").map((c,i)=>T(c, x+i*pitch, yy, pitch)).join("");
   const valor = (k,r) => ((cfg.val&&cfg.val[k]) || V[k] || (()=>""))(r);
   for(let p=0;p<hojas;p++){
@@ -627,7 +627,7 @@ function overlay(test){
         const cards = cfg.mode==="cards";
         const yy = cards ? base + a : base, w = cards ? b : a, o = cards ? c : b;
         if(k==="firma") h += T(`<img src="${esc(r.firma)}" alt="">`, x, yy, w, true);
-        else { const v = valor(k,r) ?? ""; h += (o&&o.comb) ? comb(v, x, yy, o.comb, w) : T(v, x, yy, w); }
+        else { const v = valor(k,r) ?? ""; h += (o&&o.comb) ? comb(v, x, yy, o.comb, w) : T(v, x, yy, w, false, o&&o.fs); }
       }
     });
     if(test){
