@@ -60,6 +60,7 @@
         <option>Jerárquicos</option>
         <option>SanCorSalud</option>
         <option>OSPE</option>
+        <option>Prevención Salud</option>
       </select>
     </label>
     <label>Apellido y nombre <span class="req">*</span>
@@ -151,7 +152,7 @@ $("borrar").onclick=ajustar;
 window.addEventListener("load",ajustar);
 
 $("os").addEventListener("change",()=>{
-  const o = $("os").value==="OSPE";
+  const o = ["OSPE","Prevención Salud"].includes($("os").value);
   cv.classList.toggle("alto",o);
   $("guias").hidden = !o;
   $("hint").textContent = o ? "Escribí a mano, uno debajo del otro: firma, aclaración y DNI" : "Firmá acá con el dedo";

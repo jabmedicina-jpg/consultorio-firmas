@@ -281,7 +281,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const $ = id => document.getElementById(id);
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const OBRAS = ["APSOT","FSST","OSTP y GP Chubut","Swiss Medical","Galeno","Avalian","Medifé","Osjera","Jerárquicos","SanCorSalud","OSPE"];
+const OBRAS = ["APSOT","FSST","OSTP y GP Chubut","Swiss Medical","Galeno","Avalian","Medifé","Osjera","Jerárquicos","SanCorSalud","OSPE","Prevención Salud"];
 let filas = [], perfil = {};
 const DEF = {nombre:"Dr. Jorge Benitez", especialidades:"Esp. en Medicina General y Familiar; Esp. en Hemoterapia e Inmunohematología; Esp. en Medicina del Trabajo", telefono:"2974930059", email:"drjorgebenitezcr@gmail.com", consultorio:"Ekilibrium Kinesiología", domicilio:"Pedernera 141, Km 3", localidad:"Comodoro Rivadavia"};
 const conDef = d => { const o={...DEF}; Object.entries(d||{}).forEach(([k,v])=>{ if(v) o[k]=v; }); return o; };
@@ -321,7 +321,7 @@ const CAMPOS = [
 const PERFIL = [
   ["nombre","Apellido y nombre / razón social"],["matricula","N° de matrícula"],["especialidad","Especialidad"],
   ["cuit","CUIT"],["nro_prestador","N° de prestador / código"],["domicilio","Domicilio del consultorio"],
-  ["telefono","Teléfono (WhatsApp)"],["email","Email"],["especialidades","Especialidades del recetario OSPE (separadas por ;)"],["localidad","Localidad o ciudad"],["convenio","Convenio (Jerárquicos)"],["consultorio","Consultorio / membrete (OSPE)"]
+  ["telefono","Teléfono (WhatsApp)"],["email","Email"],["especialidades","Especialidades del recetario (OSPE / Prevención Salud) (separadas por ;)"],["localidad","Localidad o ciudad"],["convenio","Convenio (Jerárquicos)"],["consultorio","Consultorio / membrete (OSPE)"]
 ];
 
 /* ---------- Definición de columnas ---------- */
@@ -403,6 +403,7 @@ const OSCFG = {
     foot:["Lugar y fecha","Firma del prestador","Sello","Se adjunta factura N°","Sello y firma recepción"], obs:true
   },
   "OSPE":{ recetas:true, rows:2, title:"OSPE — Recetario de atención" },
+  "Prevención Salud":{ recetas:true, rows:2, title:"Prevención Salud — Recetario de atención" },
   "Jerárquicos":{ cards:true, port:true, rows:9,
     title:"Jerárquicos — Registro de consultas médicas (profesional no registrado)",
     head:(P,x)=>[["Apellido y nombre:",P.nombre],["C.U.I.T.:",P.cuit],["Convenio:",P.convenio],["Mes y año prestacional:",x.periodo]],
@@ -476,7 +477,7 @@ function cardsHTML(cfg,rows){
 
 /* ---------- Recetario OSPE: 2 por hoja A4 (A5 vertical x2, para cortar) ---------- */
 const CADUCEO = `<svg class="rc-mark" viewBox="0 0 100 160"><g fill="#0b6e6e"><rect x="48" y="12" width="4" height="140" rx="2"/><circle cx="50" cy="10" r="6"/><path d="M48 26C30 10 8 14 2 22c12 0 18 4 22 8-10-2-16 2-18 8 14-4 28-2 42 6z"/><path d="M52 26c18-16 40-12 46-4-12 0-18 4-22 8 10-2 16 2 18 8-14-4-28-2-42 6z"/></g><g fill="none" stroke="#0b6e6e" stroke-width="5" stroke-linecap="round"><path d="M50 146C16 130 84 112 50 96S16 62 50 48"/><path d="M50 146c34-16-34-34 0-50s34-34 0-48"/></g></svg>`;
-function recetaHTML(r,P){
+function recetaHTML(r,P,os){
   const v = x => esc(x ?? "");
   const wa = P.telefono ? "WhatsApp "+P.telefono : "";
   return `<div class="rc">
@@ -488,7 +489,7 @@ function recetaHTML(r,P){
     <div class="rc-f">
       <div class="w2"><span>PACIENTE:</span><b>${v(r?.apellido_nombre)}</b></div><div><span>FECHA:</span><b>${r?v(fmt(r.fecha_atencion)):""}</b></div>
       <div><span>DNI:</span><b>${v(r?.dni)}</b></div><div><span>EDAD:</span><b>${v(r?.edad)}</b></div>
-      <div class="w2"><span>N° AFILIADO:</span><b>${v(r?.nro_afiliado)}</b></div><div><span>OBRA SOCIAL:</span><b>OSPE</b></div>
+      <div class="w2"><span>N° AFILIADO:</span><b>${v(r?.nro_afiliado)}</b></div><div><span>OBRA SOCIAL:</span><b>${v(os||"OSPE")}</b></div>
     </div>
     <div class="rc-box">
       <div class="rc-l">DIAGNÓSTICO</div><div class="rc-t">${v(r?.diagnostico)}</div>
@@ -520,7 +521,7 @@ function generar(){
   for(let p=0;p<hojas;p++){
     const slice = rows.slice(p*cfg.rows,(p+1)*cfg.rows);
     const x = {periodo, hoja:p+1, hojas, total:slice.reduce((s,r)=>s+(+r.importe||0),0)};
-    if(cfg.recetas){ const d = document.createElement("div"); d.className = "sheet rec"; d.innerHTML = slice.length ? slice.map(r=>recetaHTML(r,perfil)).join("") : recetaHTML(null,perfil); cont.appendChild(d); continue; }
+    if(cfg.recetas){ const d = document.createElement("div"); d.className = "sheet rec"; d.innerHTML = slice.length ? slice.map(r=>recetaHTML(r,perfil,os)).join("") : recetaHTML(null,perfil,os); cont.appendChild(d); continue; }
     const div = document.createElement("div");
     div.className = "sheet " + (cfg.port ? "port" : "land") + (cfg.cls ? " " + cfg.cls : "");
     div.innerHTML = (cfg.titleHTML ? cfg.titleHTML(perfil) : `<h4>${esc(cfg.title)}</h4>`) + (cfg.headHTML ? cfg.headHTML(perfil,x) : headHTML(cfg,perfil,x)) + (cfg.cards ? cardsHTML(cfg,slice) : tablaHTML(cfg,slice,p*cfg.rows)) + footHTML(cfg,x);
